@@ -1,0 +1,154 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Reserva de Chromebooks - Login</title>
+
+    <!-- Bulma -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <!-- Barra superior -->
+    <nav class="navbar is-white fixed-top">
+        <div class="navbar-brand">
+            <a class="navbar-item">
+                <img src="{% static 'img/icon_booking.png' %}" alt="Logo" style="max-height: 40px;">
+            </a>
+            <div class="navbar-item">
+                <strong class="has-text-dark">Aplicativo Web Reserva de Chromebooks</strong>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mensajes de Django -->
+    {% if messages %}
+    <div style="margin-top: 4.5rem;">
+        {% for message in messages %}
+        <div class="notification is-{{ message.tags }}">
+            <button class="delete" onclick="this.parentElement.remove()"></button>
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Contenedor principal -->
+    <main id="main-content">
+        <section class="section" style="min-height:100vh; background:#f5f5f5;">
+            <div class="container">
+                <div class="columns is-centered is-vcentered">
+                    <!-- Columna izquierda -->
+                    <div class="column is-6-desktop is-hidden-mobile">
+                        <div style="padding:2rem 3rem;">
+                            <img src="{% static 'img/Chromebook_Equip.webp' %}" alt="logo" style="max-width:320px;">
+                            <h2 class="title is-3 mt-4 has-text-dark">Gestión Inteligente de Activos Tecnológicos UNEMI</h2>
+                            <p class="has-text-grey">Reserva, seguimiento y control de equipos Chromebooks para actividades académicas, garantizando la disponibilidad y la trazabilidad del inventario</p>
+                        </div>
+                    </div>
+
+                    <!-- Columna derecha: FORMULARIO DE LOGIN -->
+                    <div class="column is-4-desktop">
+                        <div id="login-box" class="box is-hidden">
+                            <div class="level">
+                                <div class="level-left">
+                                    <div id="selected-profile" class="level-item"></div>
+                                </div>
+                            </div>
+
+                            <h3 class="title is-5 has-text-dark">Iniciar sesión</h3>
+
+                            <form id="login-form" method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="perfil" id="perfil-input" value="">
+
+                                <div class="field">
+                                    <label class="label has-text-dark">Usuario</label>
+                                    <div class="control has-icons-left">
+                                        <input id="username" name="username" class="input" type="text" 
+                                               placeholder="Ingrese su nombre de usuario" required>
+                                        <span class="icon is-small is-left"><i class="fas fa-user"></i></span>
+                                    </div>
+                                </div>
+
+                                <div class="field">
+                                    <label class="label has-text-dark">Contraseña</label>
+                                    <div class="control has-icons-left">
+                                        <input id="password" name="password" class="input" type="password" 
+                                               placeholder="Ingrese su contraseña" required>
+                                        <span class="icon is-small is-left"><i class="fas fa-lock"></i></span>
+                                    </div>
+                                </div>
+
+                                <div class="field mt-4">
+                                    <button type="submit" class="button is-fullwidth">Entrar</button>
+                                </div>
+
+                                <div class="field mt-3">
+                                    <button type="button" class="button is-fullwidth is-link" onclick="mostrarModalPerfiles()">
+                                        <i class="fas fa-user-circle mr-2"></i> Cambiar Perfil
+                                    </button>
+                                </div>
+                            </form>
+                        </div> 
+                    </div> 
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal de selección de perfil -->
+    <div id="profile-modal" class="modal is-active">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head has-text-centered">
+                <p class="modal-card-title is-size-4 has-text-weight-bold">
+                    <span class="perfiles-title">PERFILES</span>
+                </p>
+            </header>
+            <section class="modal-card-body">
+                <div class="has-text-centered mb-6">
+                    <p class="is-size-6 has-text-grey-dark">
+                        Selecciona tu perfil para iniciar sesión en el Sistema de Reservas Chromebooks UNEMI.
+                    </p>
+                </div>
+
+                <div class="columns is-vcentered">
+                    <!-- Docente -->
+                    <div class="column is-one-half-desktop is-full-mobile">
+                        <div class="profile-card has-text-centered has-background-white" data-profile="docente">
+                            <i class="fas fa-chalkboard-teacher icon-large has-text-link"></i>
+                            <h2 class="title is-5 mb-1 has-text-dark">Docente</h2>
+                            <p class="subtitle is-7 has-text-grey">Accede a tu espacio de enseñanza y reserva.</p>
+                            <button class="button is-fullwidth mt-4 btn-docente" onclick="selectProfile('docente')">
+                                <span class="icon"><i class="fas fa-sign-in-alt"></i></span>
+                                <span>Ingresar</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Administrativo -->
+                    <div class="column is-one-half-desktop is-full-mobile">
+                        <div class="profile-card has-text-centered has-background-white" data-profile="admin">
+                            <i class="fas fa-user-gear icon-large has-text-warning"></i>
+                            <h2 class="title is-5 mb-1 has-text-dark">Administrativo</h2>
+                            <p class="subtitle is-7 has-text-grey">Gestión eficiente de reservas y equipos.</p>
+                            <button class="button is-fullwidth mt-4 btn-admin" onclick="selectProfile('admin')">
+                                <span class="icon"><i class="fas fa-sign-in-alt"></i></span>
+                                <span>Ingresar</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="{% static 'js/script.js' %}"></script>
+</body>
+</html>

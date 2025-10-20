@@ -1,0 +1,59 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Docente</title>
+     <!-- Bulma -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar is-primary">
+        <div class="navbar-brand">
+            <a class="navbar-item">
+                <strong>STR Chromebook - Docente</strong>
+            </a>
+        </div>
+        <div class="navbar-end">
+            <div class="navbar-item">
+                <span class="icon-text">
+                    <span class="icon"><i class="fas fa-user"></i></span>
+                    <span>{{ usuario.nom_completo }}</span>
+                </span>
+            </div>
+            <div class="navbar-item">
+                <a href="{% url 'logout' %}" class="button is-light">
+                    <span class="icon"><i class="fas fa-sign-out-alt"></i></span>
+                    <span>Cerrar Sesión</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenido -->
+    <section class="section">
+        <div class="container">
+            <div class="notification is-info is-light">
+                <h1 class="title is-3">
+                    <span class="icon-text">
+                        <span class="icon"><i class="fas fa-chalkboard-teacher"></i></span>
+                        <span>Dashboard Docente</span>
+                    </span>
+                </h1>
+                <p class="subtitle">Bienvenido, <strong style="color: black;">{{ usuario.nom_completo }}</strong></p>
+            </div>
+
+            <div class="box">
+                <h2 class="title is-4">Panel Principal</h2>
+                <p>Este es el dashboard del docente. Aquí se mostrará la funcionalidad próximamente.</p>
+            </div>
+        </div>
+    </section>
+</body>
+</html>
