@@ -155,6 +155,36 @@ body {
 
 /* ==================== DASHBOARD ==================== */
 
+.autocomplete-suggestions {
+    position: absolute;
+    z-index: 9999;
+    background: white;
+    border: 1px solid #dbdbdb;
+    border-top: none;
+    max-height: 200px;
+    overflow-y: auto;
+    width: 100%;
+    box-shadow: 0 2px 3px rgba(10, 10, 10, 0.1);
+}
+
+.autocomplete-suggestion {
+    padding: 10px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.autocomplete-suggestion:hover {
+    background-color: #f5f5f5;
+}
+
+.autocomplete-suggestion.active {
+    background-color: var(--color-primero);
+    color: white;
+}
+
+.control.has-autocomplete {
+    position: relative;
+}
 
 /* ==================== ANIMACIONES ==================== */
 .modal.fade-out {

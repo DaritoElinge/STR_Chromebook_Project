@@ -57,6 +57,10 @@ class Reserva(models.Model):
     hora_fin = models.TimeField(db_column='Hora_Fin')
     cant_solicitada = models.IntegerField(db_column='Cant_Solicitada')
     estado_reserva = models.CharField(max_length=20, db_column='Estado_Reserva')
+
+    #Campos adicionales para el responsable
+    responsable_entrega = models.CharField(max_length=150, db_column='Responsable_Entrega', help_text='Nombre del responsable de recibir los equipos', default='')
+    telefono_contacto = models.CharField(max_length=10, db_column='Telefono_Contacto', help_text='Teléfono de contacto del responsable', default='')
     
     # Relaciones
     id_usuario = models.ForeignKey(

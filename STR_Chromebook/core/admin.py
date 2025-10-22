@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    TipoUsuario, TituloProfesional, Usuario,
+    TipoUsuario, TituloProfesional, Usuario, Facultad,
     Carrera, Asignatura, DocenteCarrera,
     Bloque, Aula, Rack
 )
@@ -52,9 +52,22 @@ class CarreraAdmin(admin.ModelAdmin):
 
 @admin.register(Asignatura)
 class AsignaturaAdmin(admin.ModelAdmin):
-    list_display = ('id_asignatura', 'nom_asignatura')
-    search_fields = ('nom_asignatura',)
+    list_display = ('id_asignatura', 'nom_asignatura', 'get_carrera', 'get_facultad')
+    list_filter = ('id_carrera__id_facultad', 'id_carrera')
+    search_fields = ('nom_asignatura', 'id_carrera__nom_carrera')
+    
+    def get_carrera(self, obj):
+        return obj.id_carrera.nom_carrera
+    get_carrera.short_description = 'Carrera'
+    
+    def get_facultad(self, obj):
+        return obj.id_carrera.id_facultad.nom_facultad if obj.id_carrera.id_facultad else 'Sin facultad'
+    get_facultad.short_description = 'Facultad'
 
+@admin.register(Facultad)
+class FacultadAdmin(admin.ModelAdmin):
+    list_display = ('id_facultad', 'nom_facultad')
+    search_fields = ('nom_facultad',)
 
 @admin.register(DocenteCarrera)
 class DocenteCarreraAdmin(admin.ModelAdmin):
