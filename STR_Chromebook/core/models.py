@@ -76,7 +76,7 @@ class Usuario(models.Model):
 # ==================== ACADÉMICO ====================
 
 class Facultad(models.Model):
-    """Tabla: Tb_FACULTAD (Nueva Entidad)"""
+    """Tabla: Tb_FACULTAD"""
     id_facultad = models.AutoField(primary_key=True, db_column='ID_Facultad')
     nom_facultad = models.CharField(max_length=100, db_column='Nom_Facultad')
     
@@ -96,7 +96,7 @@ class Carrera(models.Model):
     # Relaciones
     id_facultad = models.ForeignKey(
         Facultad,
-        on_delete=models.PROTECT,  
+        on_delete=models.CASCADE,  
         db_column='ID_Facultad',
         verbose_name='Facultad'
     )
@@ -114,6 +114,15 @@ class Asignatura(models.Model):
     """Tabla: Tb_ASIGNATURA"""
     id_asignatura = models.AutoField(primary_key=True, db_column='ID_Asignatura')
     nom_asignatura = models.CharField(max_length=50, db_column='Nom_Asignatura')
+
+    # Relación con Carrera
+    id_carrera = models.ForeignKey(
+        Carrera,
+        on_delete=models.CASCADE,
+        db_column='ID_Carrera',
+        related_name='asignaturas',
+        help_text='Carrera a la que pertenece esta asignatura'
+    )
     
     class Meta:
         db_table = 'Tb_ASIGNATURA'

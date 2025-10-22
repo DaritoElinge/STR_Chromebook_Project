@@ -27,6 +27,7 @@ admin.site.index_title = "Panel de Administración"
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('core.urls')),
+    path('', include('Gestion_Equipos.urls')),
 ]
 
 # Servir archivos estáticos y media en desarrollo

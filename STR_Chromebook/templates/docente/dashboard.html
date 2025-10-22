@@ -5,33 +5,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Docente</title>
-     <!-- Bulma -->
+    
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
-    <!-- Font Awesome -->
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- CSS -->
+    
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
 <body>
     <!-- Navbar -->
-    <nav class="navbar is-primary">
+    <nav class="navbar" style="background-color: var(--color-tercero) !important;">
         <div class="navbar-brand">
             <a class="navbar-item">
-                <strong>STR Chromebook - Docente</strong>
+                <img src="{% static 'img/icon_booking.png' %}" alt="Logo" style="max-height: 40px;">
+            </a>
+            <a class="navbar-item">
+                <strong class="has-text-dark">STR Chromebook - Docente</strong>
             </a>
         </div>
-        <div class="navbar-end">
-            <div class="navbar-item">
-                <span class="icon-text">
-                    <span class="icon"><i class="fas fa-user"></i></span>
-                    <span>{{ usuario.nom_completo }}</span>
-                </span>
-            </div>
-            <div class="navbar-item">
-                <a href="{% url 'logout' %}" class="button is-light">
-                    <span class="icon"><i class="fas fa-sign-out-alt"></i></span>
-                    <span>Cerrar Sesión</span>
-                </a>
+        <div class="navbar-menu">
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <span class="icon-text has-text-dark">
+                        <span class="icon"><i class="fas fa-user"></i></span>
+                        <span><strong style="color:black">{{ usuario.nom_completo }}</strong></span>
+                    </span>
+                </div>
+                <div class="navbar-item">
+                    <a href="{% url 'logout' %}" class="button is-light">
+                        <span class="icon"><i class="fas fa-sign-out-alt"></i></span>
+                        <span>Cerrar Sesión</span>
+                    </a>
+                </div>
             </div>
         </div>
     </nav>
@@ -39,19 +44,104 @@
     <!-- Contenido -->
     <section class="section">
         <div class="container">
-            <div class="notification is-info is-light">
-                <h1 class="title is-3">
+            <!-- Título -->
+            <div class="block">
+                <h1 class="title is-3 has-text-dark">
                     <span class="icon-text">
-                        <span class="icon"><i class="fas fa-chalkboard-teacher"></i></span>
+                        <span class="icon" style="color: var(--color-primero);"><i class="fas fa-chalkboard-teacher"></i></span>
                         <span>Dashboard Docente</span>
                     </span>
                 </h1>
-                <p class="subtitle">Bienvenido, <strong style="color: black;">{{ usuario.nom_completo }}</strong></p>
+                <p class="subtitle">Bienvenido, <strong>{{ usuario.nom_completo }}</strong></p>
             </div>
 
-            <div class="box">
-                <h2 class="title is-4">Panel Principal</h2>
-                <p>Este es el dashboard del docente. Aquí se mostrará la funcionalidad próximamente.</p>
+            <!-- Cards de Acciones -->
+            <div class="columns is-multiline">
+                <!-- Card: Nueva Reserva -->
+                <div class="column is-one-third">
+                    <div class="card">
+                        <div class="card-content has-text-centered">
+                            <div class="icon is-large" style="color: var(--color-primero);">
+                                <i class="fas fa-calendar-plus fa-3x"></i>
+                            </div>
+                            <h2 class="title is-4 mt-4 has-text-dark">Solicitar Nuevo Préstamo</h2>
+                            <p class="subtitle is-6 has-text-grey">
+                                Cree una nueva solicitud de préstamo de Chromebooks
+                            </p>
+                            <a href="{% url 'crear_reserva' %}" class="button is-fullwidth mt-4" 
+                               style="background-color: var(--color-primero); color: white;">
+                                <span class="icon"><i class="fas fa-plus-circle"></i></span>
+                                <span>Nueva Solicitud</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card: Mis Reservas -->
+                <div class="column is-one-third">
+                    <div class="card">
+                        <div class="card-content has-text-centered">
+                            <div class="icon is-large" style="color: var(--color-segundo);">
+                                <i class="fas fa-list-alt fa-3x"></i>
+                            </div>
+                            <h2 class="title is-4 mt-4 has-text-dark">Mis Reservas</h2>
+                            <p class="subtitle is-6 has-text-grey">
+                                Consulte el estado de sus solicitudes
+                            </p>
+                            <a href="#" class="button is-fullwidth mt-4 is-link">
+                                <span class="icon"><i class="fas fa-eye"></i></span>
+                                <span>Ver Reservas</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card: Historial -->
+                <div class="column is-one-third">
+                    <div class="card">
+                        <div class="card-content has-text-centered">
+                            <div class="icon is-large has-text-grey-light">
+                                <i class="fas fa-history fa-3x"></i>
+                            </div>
+                            <h2 class="title is-4 mt-4 has-text-dark">Historial</h2>
+                            <p class="subtitle is-6 has-text-grey">
+                                Revise el historial de préstamos anteriores
+                            </p>
+                            <a href="#" class="button is-fullwidth mt-4 is-light">
+                                <span class="icon"><i class="fas fa-clock"></i></span>
+                                <span>Ver Historial</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estadísticas -->
+            <div class="box mt-5">
+                <h3 class="title is-5 has-text-dark">
+                    <span class="icon-text">
+                        <span class="icon"><i class="fas fa-chart-line"></i></span>
+                        <span>Resumen de Actividad</span>
+                    </span>
+                </h3>
+                <div class="columns is-multiline has-text-centered mt-4">
+                    <div class="column">
+                        <p class="heading">Solicitudes Totales</p>
+                        <p class="title">0</p>
+                    </div>
+                    <div class="column">
+                        <p class="heading">Pendientes</p>
+                        <p class="title has-text-warning">0</p>
+                    </div>
+                    <div class="column">
+                        <p class="heading">Aprobadas</p>
+                        <p class="title has-text-success">0</p>
+                    </div>
+                    <div class="column">
+                        <p class="heading">Rechazadas</p>
+                        <p class="title has-text-danger">0</p>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
