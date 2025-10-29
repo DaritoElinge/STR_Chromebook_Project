@@ -1,0 +1,375 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nueva Solicitud de Préstamo</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar" style="background-color: var(--color-tercero) !important;">
+        <div class="navbar-brand">
+            <a class="navbar-item" href="{% url 'dashboard_docente' %}">
+                <img src="{% static 'img/icon_booking.png' %}" alt="Logo" style="max-height: 40px;">
+            </a>
+            <a class="navbar-item">
+                <strong class="has-text-dark">Nueva Solicitud de Préstamo</strong>
+            </a>
+        </div>
+        <div class="navbar-menu">
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <a href="{% url 'dashboard_docente' %}" class="button is-light">
+                        <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                        <span>Volver</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mensajes -->
+    {% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+        <div class="notification is-{{ message.tags }}">
+            <button class="delete" onclick="this.parentElement.remove()"></button>
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Formulario -->
+    <section class="section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-8">
+                    <div class="box">
+                        <h1 class="title is-4 has-text-dark">
+                            <span class="icon-text">
+                                <span class="icon" style="color: var(--color-primero);"><i class="fas fa-calendar-plus"></i></span>
+                                <span>Solicitar Nuevo Préstamo de Chromebooks</span>
+                            </span>
+                        </h1>
+                        <hr>
+
+                        <form method="POST" id="reserva-form">
+                            {% csrf_token %}
+
+                            <!-- Fecha y Horarios -->
+                            <div class="columns">
+                                <div class="column is-4">
+                                    <div class="field">
+                                        <label class="label has-text-dark">Fecha de Uso *</label>
+                                        <div class="control has-icons-left">
+                                            {{ form.fecha_uso }}
+                                            <span class="icon is-small is-left">
+                                                <i class="fas fa-calendar"></i>
+                                            </span>
+                                        </div>
+                                        {% if form.fecha_uso.errors %}
+                                            <p class="help is-danger">{{ form.fecha_uso.errors.0 }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="column is-4">
+                                    <div class="field">
+                                        <label class="label has-text-dark">Hora de Inicio *</label>
+                                        <div class="control has-icons-left">
+                                            {{ form.hora_inicio }}
+                                            <span class="icon is-small is-left">
+                                                <i class="fas fa-clock"></i>
+                                            </span>
+                                        </div>
+                                        {% if form.hora_inicio.errors %}
+                                            <p class="help is-danger">{{ form.hora_inicio.errors.0 }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="column is-4">
+                                    <div class="field">
+                                        <label class="label has-text-dark">Hora de Fin * <small>(Máx. 17:00)</small></label>
+                                        <div class="control has-icons-left">
+                                            {{ form.hora_fin }}
+                                            <span class="icon is-small is-left">
+                                                <i class="fas fa-clock"></i>
+                                            </span>
+                                        </div>
+                                        {% if form.hora_fin.errors %}
+                                            <p class="help is-danger">{{ form.hora_fin.errors.0 }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Carrera y Asignatura -->
+                            <div class="columns">
+                                <div class="column is-6">
+                                    <div class="field">
+                                        <label class="label has-text-dark">Carrera *</label>
+                                        <div class="control">
+                                            <div class="select is-fullwidth">
+                                                {{ form.id_carrera }}
+                                            </div>
+                                        </div>
+                                        {% if form.id_carrera.errors %}
+                                            <p class="help is-danger">{{ form.id_carrera.errors.0 }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="column is-6">
+                                    <div class="field">
+                                        <label class="label has-text-dark">Asignatura *</label>
+                                        <div class="control">
+                                            <div class="select is-fullwidth">
+                                                {{ form.id_asignatura }}
+                                            </div>
+                                        </div>
+                                        <p class="help">Seleccione primero una carrera</p>
+                                        {% if form.id_asignatura.errors %}
+                                            <p class="help is-danger">{{ form.id_asignatura.errors.0 }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Bloque y Aula -->
+                            <div class="columns">
+                                <div class="column is-6">
+                                    <div class="field">
+                                        <label class="label has-text-dark">Bloque *</label>
+                                        <div class="control">
+                                            <div class="select is-fullwidth">
+                                                <select name="bloque" id="id_bloque" class="select" required>
+                                                    <option value="">Seleccione un bloque</option>
+                                                    {% for bloque in form.bloque.field.queryset %}
+                                                        <option value="{{ bloque.id_bloque }}">{{ bloque.nom_bloque }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="column is-6">
+                                    <div class="field">
+                                        <label class="label has-text-dark">Aula *</label>
+                                        <div class="control">
+                                            <div class="select is-fullwidth">
+                                                {{ form.id_aula }}
+                                            </div>
+                                        </div>
+                                        {% if form.id_aula.errors %}
+                                            <p class="help is-danger">{{ form.id_aula.errors.0 }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Número de Chromebooks -->
+                            <div class="field">
+                                <label class="label has-text-dark">Número de Chromebooks a Utilizar *</label>
+                                <div class="control">
+                                    <div class="select is-fullwidth">
+                                        {{ form.cant_solicitada }}
+                                    </div>
+                                </div>
+                                {% if form.cant_solicitada.errors %}
+                                    <p class="help is-danger">{{ form.cant_solicitada.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Responsable y Teléfono -->
+                            <div class="columns">
+                                <div class="column is-8">
+                                    <div class="field">
+                                        <label class="label has-text-dark">Responsable de la Entrega de los Chromebooks *</label>
+                                        <div class="control has-autocomplete">
+                                            {{ form.responsable_entrega }}
+                                            <div id="autocomplete-list" class="autocomplete-suggestions" style="display: none;"></div>
+                                        </div>
+                                        <p class="help">Comience a escribir y seleccione de las sugerencias</p>
+                                        {% if form.responsable_entrega.errors %}
+                                            <p class="help is-danger">{{ form.responsable_entrega.errors.0 }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="column is-4">
+                                    <div class="field">
+                                        <label class="label has-text-dark">Teléfono de Contacto *</label>
+                                        <div class="control has-icons-left">
+                                            {{ form.telefono_contacto }}
+                                            <span class="icon is-small is-left">
+                                                <i class="fas fa-phone"></i>
+                                            </span>
+                                        </div>
+                                        {% if form.telefono_contacto.errors %}
+                                            <p class="help is-danger">{{ form.telefono_contacto.errors.0 }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Errores generales del formulario -->
+                            {% if form.non_field_errors %}
+                                <div class="notification is-danger">
+                                    {{ form.non_field_errors }}
+                                </div>
+                            {% endif %}
+
+                            <!-- Botones -->
+                            <div class="field is-grouped is-grouped-right mt-5">
+                                <div class="control">
+                                    <a href="{% url 'dashboard_docente' %}" class="button is-light">
+                                        <span class="icon"><i class="fas fa-times"></i></span>
+                                        <span>Cancelar</span>
+                                    </a>
+                                </div>
+                                <div class="control">
+                                    <button type="submit" class="button" style="background-color: var(--color-primero); color: white;">
+                                        <span class="icon"><i class="fas fa-paper-plane"></i></span>
+                                        <span>Enviar Solicitud</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- JavaScript -->
+    <script>
+        // Autocompletar responsable
+        const responsableInput = document.getElementById('id_responsable_entrega');
+        const autocompleteList = document.getElementById('autocomplete-list');
+        let currentFocus = -1;
+
+        responsableInput.addEventListener('input', function() {
+            const query = this.value.trim();
+            
+            if (query.length < 2) {
+                autocompleteList.style.display = 'none';
+                return;
+            }
+
+            // Llamar a la API de autocompletado
+            fetch(`/api/autocompletar-responsable/?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    autocompleteList.innerHTML = '';
+                    
+                    if (data.results.length === 0) {
+                        autocompleteList.style.display = 'none';
+                        return;
+                    }
+
+                    data.results.forEach((nombre, index) => {
+                        const div = document.createElement('div');
+                        div.className = 'autocomplete-suggestion';
+                        div.textContent = nombre;
+                        div.addEventListener('click', function() {
+                            responsableInput.value = nombre;
+                            autocompleteList.style.display = 'none';
+                        });
+                        autocompleteList.appendChild(div);
+                    });
+
+                    autocompleteList.style.display = 'block';
+                    currentFocus = -1;
+                })
+                .catch(error => console.error('Error:', error));
+        });
+
+        // Navegar con teclado
+        responsableInput.addEventListener('keydown', function(e) {
+            const items = autocompleteList.getElementsByClassName('autocomplete-suggestion');
+            
+            if (e.keyCode === 40) { // Flecha abajo
+                currentFocus++;
+                addActive(items);
+                e.preventDefault();
+            } else if (e.keyCode === 38) { // Flecha arriba
+                currentFocus--;
+                addActive(items);
+                e.preventDefault();
+            } else if (e.keyCode === 13) { // Enter
+                e.preventDefault();
+                if (currentFocus > -1 && items[currentFocus]) {
+                    items[currentFocus].click();
+                }
+            } else if (e.keyCode === 27) { // Escape
+                autocompleteList.style.display = 'none';
+            }
+        });
+
+        function addActive(items) {
+            if (!items || items.length === 0) return;
+            removeActive(items);
+            if (currentFocus >= items.length) currentFocus = 0;
+            if (currentFocus < 0) currentFocus = items.length - 1;
+            items[currentFocus].classList.add('active');
+        }
+
+        function removeActive(items) {
+            for (let i = 0; i < items.length; i++) {
+                items[i].classList.remove('active');
+            }
+        }
+
+        // Cerrar autocompletado al hacer clic fuera
+        document.addEventListener('click', function(e) {
+            if (e.target !== responsableInput) {
+                autocompleteList.style.display = 'none';
+            }
+        });
+
+        // Filtrar aulas por bloque
+        const bloqueSelect = document.getElementById('id_bloque');
+        const aulaSelect = document.getElementById('id_id_aula');
+
+        bloqueSelect.addEventListener('change', function() {
+            const bloqueId = this.value;
+            
+            if (!bloqueId) {
+                aulaSelect.innerHTML = '<option value="">Seleccione un aula</option>';
+                return;
+            }
+
+            // Llamar a la API para filtrar aulas
+            fetch(`/api/filtrar-aulas/?bloque_id=${bloqueId}`)
+                .then(response => response.json())
+                .then(data => {
+                    aulaSelect.innerHTML = '<option value="">Seleccione un aula</option>';
+                    
+                    data.aulas.forEach(aula => {
+                        const option = document.createElement('option');
+                        option.value = aula.id_aula;
+                        option.textContent = aula.nom_aula;
+                        aulaSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        });
+
+        // Convertir responsable a mayúsculas al enviar
+        document.getElementById('reserva-form').addEventListener('submit', function(e) {
+            responsableInput.value = responsableInput.value.toUpperCase();
+        });
+    </script>
+</body>
+</html>
