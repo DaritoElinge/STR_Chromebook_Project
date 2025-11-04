@@ -76,3 +76,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (modal) modal.classList.add('is-active');
     if (loginBox) loginBox.classList.add('is-hidden');
 });
+
+
+/**
+* Muestra el modal de recuperación de contraseña.
+*/
+function mostrarModalRecuperar() {
+    const modal = document.getElementById('modal-recuperar');
+    if (modal) {
+        modal.classList.add('is-active');
+    }
+}
+
+/**
+* Cierra el modal de recuperación de contraseña.
+*/
+function cerrarModalRecuperar() {
+    const modal = document.getElementById('modal-recuperar');
+    if (modal) {
+                modal.classList.remove('is-active');
+    }
+}

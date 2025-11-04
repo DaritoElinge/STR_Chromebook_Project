@@ -34,8 +34,15 @@ def crear_reserva(request):
             
             reserva.save()
             
-            messages.success(request, f'Reserva #{reserva.id_reserva} creada exitosamente. Estado: Pendiente de aprobación.')
-            return redirect('dashboard_docente')
+            messages.success(
+                request, 
+                f'✅ Reserva #{reserva.id_reserva} creada exitosamente. '
+                f'Estado: <strong>Pendiente de aprobación</strong>. '
+                f'Recibirá notificación cuando sea procesada.'
+            )
+            return redirect('dashboard_docente')  # Redirige al dashboard, no a login
+        else:
+            messages.error(request, 'Por favor corrija los errores en el formulario.')
     else:
         form = ReservaForm()
     
