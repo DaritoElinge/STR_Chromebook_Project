@@ -5,11 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Docente</title>
-    
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
 <body>
@@ -27,8 +24,8 @@
             <div class="navbar-end">
                 <div class="navbar-item">
                     <span class="icon-text has-text-dark">
-                        <span class="icon"><i class="fas fa-user"></i></span>
-                        <span><strong style="color:black">{{ usuario.nom_completo }}</strong></span>
+                        <span class="icon"><i class="fas fa-chalkboard-teacher"></i></span>
+                        <span><strong>{{ usuario.nom_completo }}</strong></span>
                     </span>
                 </div>
                 <div class="navbar-item">
@@ -52,7 +49,7 @@
                         <span>Dashboard Docente</span>
                     </span>
                 </h1>
-                <p class="subtitle">Bienvenido, <strong>{{ usuario.nom_completo }}</strong></p>
+                <p class="subtitle">Bienvenido/a, <strong>{{ usuario.nom_completo }}</strong></p>
             </div>
 
             <!-- Cards de Acciones -->
@@ -127,22 +124,72 @@
                 <div class="columns is-multiline has-text-centered mt-4">
                     <div class="column">
                         <p class="heading">Solicitudes Totales</p>
-                        <p class="title">0</p>
+                        <p class="title">{{ reservas_totales }}</p>
                     </div>
                     <div class="column">
                         <p class="heading">Pendientes</p>
-                        <p class="title has-text-warning">0</p>
+                        <p class="title has-text-warning">{{ reservas_pendientes }}</p>
                     </div>
                     <div class="column">
                         <p class="heading">Aprobadas</p>
-                        <p class="title has-text-success">0</p>
+                        <p class="title has-text-success">{{ reservas_aprobadas }}</p>
                     </div>
                     <div class="column">
                         <p class="heading">Rechazadas</p>
-                        <p class="title has-text-danger">0</p>
+                        <p class="title has-text-danger">{{ reservas_rechazadas }}</p>
                     </div>
                 </div>
             </div>
+
+            <!-- Próximas Reservas -->
+            {% if proximas_reservas %}
+            <div class="box mt-5">
+                <h3 class="title is-5 has-text-dark">
+                    <span class="icon-text">
+                        <span class="icon"><i class="fas fa-calendar-alt"></i></span>
+                        <span>Próximas Reservas Aprobadas</span>
+                    </span>
+                </h3>
+                <div class="table-container">
+                    <table class="table is-fullwidth is-striped is-hoverable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Fecha</th>
+                                <th>Horario</th>
+                                <th>Asignatura</th>
+                                <th>Aula</th>
+                                <th>Cantidad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reserva in proximas_reservas %}
+                            <tr>
+                                <td><strong>#{{ reserva.id_reserva }}</strong></td>
+                                <td>{{ reserva.fecha_uso|date:"d/m/Y" }}</td>
+                                <td>{{ reserva.hora_inicio|time:"H:i" }} - {{ reserva.hora_fin|time:"H:i" }}</td>
+                                <td>{{ reserva.id_asignatura.nom_asignatura }}</td>
+                                <td>{{ reserva.id_aula.nom_aula }}</td>
+                                <td><span class="tag is-info">{{ reserva.cant_solicitada }} equipos</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+            <div class="box mt-5">
+                <h3 class="title is-5 has-text-dark">
+                    <span class="icon-text">
+                        <span class="icon"><i class="fas fa-calendar-alt"></i></span>
+                        <span>Próximas Reservas</span>
+                    </span>
+                </h3>
+                <div class="notification is-info is-light">
+                    <i class="fas fa-info-circle"></i> No tienes reservas aprobadas programadas
+                </div>
+            </div>
+            {% endif %}
         </div>
     </section>
 </body>

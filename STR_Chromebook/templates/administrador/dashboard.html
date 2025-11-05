@@ -4,54 +4,237 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Administrativo</title>
-     <!-- Bulma -->
+    <title>Dashboard Administrador</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- CSS -->
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
 <body>
     <!-- Navbar -->
-    <nav class="navbar is-primary">
+    <nav class="navbar" style="background-color: var(--color-cuarto) !important;">
         <div class="navbar-brand">
+            <a class="navbar-item" href="{% url 'dashboard_administrador' %}">
+                <img src="{% static 'img/icon_booking.png' %}" alt="Logo" style="max-height: 40px;">
+            </a>
             <a class="navbar-item">
-                <strong>STR Chromebook - Administrador</strong>
+                <strong class="has-text-dark">STR Chromebook - Administrador</strong>
             </a>
         </div>
-        <div class="navbar-end">
-            <div class="navbar-item">
-                <span class="icon-text">
-                    <span class="icon"><i class="fas fa-user"></i></span>
-                    <span>{{ usuario.nom_completo }}</span>
-                </span>
-            </div>
-            <div class="navbar-item">
-                <a href="{% url 'logout' %}" class="button is-light">
-                    <span class="icon"><i class="fas fa-sign-out-alt"></i></span>
-                    <span>Cerrar Sesión</span>
-                </a>
+        <div class="navbar-menu">
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <span class="icon-text has-text-dark">
+                        <span class="icon"><i class="fas fa-user-gear"></i></span>
+                        <span><strong>{{ usuario.nom_completo }}</strong></span>
+                    </span>
+                </div>
+                <div class="navbar-item">
+                    <a href="{% url 'logout' %}" class="button is-light">
+                        <span class="icon"><i class="fas fa-sign-out-alt"></i></span>
+                        <span>Cerrar Sesión</span>
+                    </a>
+                </div>
             </div>
         </div>
     </nav>
 
+    <!-- Mensajes -->
+    {% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+        <div class="notification is-{{ message.tags }}">
+            <button class="delete" onclick="this.parentElement.remove()"></button>
+            {{ message|safe }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <!-- Contenido -->
     <section class="section">
         <div class="container">
-            <div class="notification is-info is-light">
-                <h1 class="title is-3">
+            <!-- Título -->
+            <div class="block">
+                <h1 class="title is-3 has-text-dark">
                     <span class="icon-text">
-                        <span class="icon"><i class="fas fa-chalkboard-teacher"></i></span>
+                        <span class="icon" style="color: var(--color-cuarto);"><i class="fas fa-tachometer-alt"></i></span>
                         <span>Dashboard Administrador</span>
                     </span>
                 </h1>
-                <p class="subtitle">Bienvenido, <strong style="color: black;">{{ usuario.nom_completo }}</strong></p>
+                <p class="subtitle">Bienvenido/a, <strong>{{ usuario.nom_completo }}</strong></p>
             </div>
 
-            <div class="box">
-                <h2 class="title is-4">Panel Principal</h2>
-                <p>Este es el dashboard del Administrador. Aquí se mostrará la funcionalidad próximamente.</p>
+            <!-- Estadísticas -->
+            <div class="columns is-multiline">
+                <div class="column is-one-quarter">
+                    <div class="box has-background-warning">
+                        <div class="level">
+                            <div class="level-left">
+                                <div>
+                                    <p class="heading has-text-white">Reservas Pendientes</p>
+                                    <p class="title has-text-white">{{ total_pendientes }}</p>
+                                </div>
+                            </div>
+                            <div class="level-right">
+                                <span class="icon is-large has-text-white">
+                                    <i class="fas fa-clock fa-2x"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <p class="has-text-white"><small>Requieren aprobación</small></p>
+                    </div>
+                </div>
+
+                <div class="column is-one-quarter">
+                    <div class="box has-background-success">
+                        <div class="level">
+                            <div class="level-left">
+                                <div>
+                                    <p class="heading has-text-white">Equipos Disponibles</p>
+                                    <p class="title has-text-white">{{ total_equipos_disponibles }}</p>
+                                </div>
+                            </div>
+                            <div class="level-right">
+                                <span class="icon is-large has-text-white">
+                                    <i class="fas fa-laptop fa-2x"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <p class="has-text-white"><small>Listos para asignar</small></p>
+                    </div>
+                </div>
+
+                <div class="column is-one-quarter">
+                    <div class="box has-background-info">
+                        <div class="level">
+                            <div class="level-left">
+                                <div>
+                                    <p class="heading has-text-white">En Uso</p>
+                                    <p class="title has-text-white">{{ total_equipos_en_uso }}</p>
+                                </div>
+                            </div>
+                            <div class="level-right">
+                                <span class="icon is-large has-text-white">
+                                    <i class="fas fa-user-laptop fa-2x"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <p class="has-text-white"><small>Equipos prestados</small></p>
+                    </div>
+                </div>
+
+                <div class="column is-one-quarter">
+                    <div class="box has-background-danger">
+                        <div class="level">
+                            <div class="level-left">
+                                <div>
+                                    <p class="heading has-text-white">Mantenimiento</p>
+                                    <p class="title has-text-white">{{ total_equipos_mantenimiento }}</p>
+                                </div>
+                            </div>
+                            <div class="level-right">
+                                <span class="icon is-large has-text-white">
+                                    <i class="fas fa-tools fa-2x"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <p class="has-text-white"><small>Requieren atención</small></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Acciones Rápidas -->
+            <div class="box mt-5">
+                <h3 class="title is-5 has-text-dark">
+                    <span class="icon-text">
+                        <span class="icon"><i class="fas fa-bolt"></i></span>
+                        <span>Acciones Rápidas</span>
+                    </span>
+                </h3>
+                <div class="columns">
+                    <div class="column">
+                        <a href="#" class="button is-warning is-fullwidth is-medium">
+                            <span class="icon"><i class="fas fa-clipboard-list"></i></span>
+                            <span>Gestionar Reservas</span>
+                            {% if total_pendientes > 0 %}
+                            <span class="tag is-danger is-light ml-2">{{ total_pendientes }}</span>
+                            {% endif %}
+                        </a>
+                    </div>
+                    <div class="column">
+                        <a href="#" class="button is-info is-fullwidth is-medium">
+                            <span class="icon"><i class="fas fa-laptop"></i></span>
+                            <span>Gestionar Equipos</span>
+                        </a>
+                    </div>
+                    <div class="column">
+                        <a href="#" class="button is-link is-fullwidth is-medium">
+                            <span class="icon"><i class="fas fa-chart-bar"></i></span>
+                            <span>Ver Reportes</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reservas Pendientes -->
+            <div class="box mt-5">
+                <h3 class="title is-5 has-text-dark">
+                    <span class="icon-text">
+                        <span class="icon has-text-warning"><i class="fas fa-exclamation-circle"></i></span>
+                        <span>Reservas Pendientes de Aprobación</span>
+                    </span>
+                </h3>
+
+                {% if reservas_pendientes %}
+                <div class="table-container">
+                    <table class="table is-fullwidth is-striped is-hoverable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Fecha</th>
+                                <th>Hora</th>
+                                <th>Docente</th>
+                                <th>Asignatura</th>
+                                <th>Carrera</th>
+                                <th>Aula</th>
+                                <th>Cant.</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reserva in reservas_pendientes %}
+                            <tr>
+                                <td><strong>#{{ reserva.id_reserva }}</strong></td>
+                                <td>{{ reserva.fecha_uso|date:"d/m/Y" }}</td>
+                                <td>{{ reserva.hora_inicio|time:"H:i" }} - {{ reserva.hora_fin|time:"H:i" }}</td>
+                                <td>{{ reserva.id_usuario.nom_completo }}</td>
+                                <td>{{ reserva.id_asignatura.nom_asignatura }}</td>
+                                <td>{{ reserva.id_carrera.nom_carrera }}</td>
+                                <td>{{ reserva.id_aula.nom_aula }}</td>
+                                <td><span class="tag is-info">{{ reserva.cant_solicitada }}</span></td>
+                                <td>
+                                    <div class="buttons are-small">
+                                        <button class="button is-success is-small">
+                                            <span class="icon"><i class="fas fa-check"></i></span>
+                                        </button>
+                                        <button class="button is-danger is-small">
+                                            <span class="icon"><i class="fas fa-times"></i></span>
+                                        </button>
+                                        <button class="button is-info is-small">
+                                            <span class="icon"><i class="fas fa-eye"></i></span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="notification is-success is-light">
+                    <i class="fas fa-check-circle"></i> No hay reservas pendientes en este momento
+                </div>
+                {% endif %}
             </div>
         </div>
     </section>
