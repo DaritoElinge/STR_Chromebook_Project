@@ -108,3 +108,58 @@ def filtrar_asignaturas_por_carrera(request):
         return JsonResponse({'asignaturas': list(asignaturas)})
     
     return JsonResponse({'asignaturas': []})
+
+
+def aprobar_reserva(request, reserva_id):
+    """Vista para aprobar una reserva"""
+    
+    # Verificar que sea administrador
+    if request.session.get('usuario_tipo') != 'administrador':
+        return JsonResponse({'success': False, 'error': 'Acceso denegado'})
+    
+    if request.method == 'POST':
+        try:
+            from django.shortcuts import get_object_or_404
+            reserva = get_object_or_404(Reserva, id_reserva=reserva_id)
+            
+            reserva.estado_reserva = 'Aprobada'
+            reserva.save()
+            
+            messages.success(request, f'✅ Reserva #{reserva_id} aprobada exitosamente.')
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+
+def rechazar_reserva(request, reserva_id):
+    """Vista para rechazar una reserva con motivo"""
+    
+    # Verificar que sea administrador
+    if request.session.get('usuario_tipo') != 'administrador':
+        return JsonResponse({'success': False, 'error': 'Acceso denegado'})
+    
+    if request.method == 'POST':
+        try:
+            from django.shortcuts import get_object_or_404
+            import json
+            
+            data = json.loads(request.body)
+            motivo = data.get('motivo', '').strip()
+            
+            if not motivo:
+                return JsonResponse({'success': False, 'error': 'Debe proporcionar un motivo'})
+            
+            reserva = get_object_or_404(Reserva, id_reserva=reserva_id)
+            
+            reserva.estado_reserva = 'Rechazada'
+            reserva.motivo_rechazo = motivo
+            reserva.save()
+            
+            messages.warning(request, f'❌ Reserva #{reserva_id} rechazada.')
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})

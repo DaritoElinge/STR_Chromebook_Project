@@ -43,6 +43,7 @@ def login_view(request):
                 request.session['usuario_cedula'] = usuario.cedula
                 request.session['usuario_username'] = usuario.username
                 
+                messages.success(request, f'Bienvenido {usuario.nom_completo}')
                 return redirect('dashboard')
             else:
                 messages.error(request, 'Contraseña incorrecta.')
@@ -157,8 +158,22 @@ def dashboard_administrador(request):
     reservas_pendientes = Reserva.objects.filter(
         estado_reserva='Pendiente'
     ).select_related(
-        'id_usuario', 'id_asignatura', 'id_carrera', 'id_aula'
+        'id_usuario', 'id_asignatura', 'id_carrera', 'id_aula', 'id_aula__id_bloque'
     ).order_by('fecha_uso', 'hora_inicio')[:10]
+    
+    # Reservas aprobadas (últimas 10)
+    reservas_aprobadas = Reserva.objects.filter(
+        estado_reserva='Aprobada'
+    ).select_related(
+        'id_usuario', 'id_asignatura', 'id_carrera', 'id_aula', 'id_aula__id_bloque'
+    ).order_by('-fecha_uso', '-hora_inicio')[:10]
+    
+    # Reservas rechazadas (últimas 10)
+    reservas_rechazadas = Reserva.objects.filter(
+        estado_reserva='Rechazada'
+    ).select_related(
+        'id_usuario', 'id_asignatura', 'id_carrera', 'id_aula', 'id_aula__id_bloque'
+    ).order_by('-fecha_uso', '-hora_inicio')[:10]
     
     # Reservas de hoy
     reservas_hoy = Reserva.objects.filter(
@@ -173,6 +188,8 @@ def dashboard_administrador(request):
         'total_equipos_en_uso': total_equipos_en_uso,
         'total_equipos_mantenimiento': total_equipos_mantenimiento,
         'reservas_pendientes': reservas_pendientes,
+        'reservas_aprobadas': reservas_aprobadas,
+        'reservas_rechazadas': reservas_rechazadas,
         'reservas_hoy': reservas_hoy,
     }
     

@@ -42,10 +42,7 @@
     {% if messages %}
     <div class="container mt-3">
         {% for message in messages %}
-        <div class="notification is-{{ message.tags }}">
-            <button class="delete" onclick="this.parentElement.remove()"></button>
-            {{ message|safe }}
-        </div>
+        
         {% endfor %}
     </div>
     {% endif %}
@@ -61,7 +58,7 @@
                         <span>Dashboard Administrador</span>
                     </span>
                 </h1>
-                <p class="subtitle">Bienvenido/a, <strong>{{ usuario.nom_completo }}</strong></p>
+                <p class="subtitle">Bienvenido, <strong>{{ usuario.nom_completo }}</strong></p>
             </div>
 
             <!-- Estadísticas -->
@@ -176,67 +173,354 @@
                 </div>
             </div>
 
-            <!-- Reservas Pendientes -->
+            <!-- Reservas con Pestañas -->
             <div class="box mt-5">
                 <h3 class="title is-5 has-text-dark">
                     <span class="icon-text">
-                        <span class="icon has-text-warning"><i class="fas fa-exclamation-circle"></i></span>
-                        <span>Reservas Pendientes de Aprobación</span>
+                        <span class="icon"><i class="fas fa-clipboard-list"></i></span>
+                        <span>Gestión de Reservas</span>
                     </span>
                 </h3>
 
-                {% if reservas_pendientes %}
-                <div class="table-container">
-                    <table class="table is-fullwidth is-striped is-hoverable">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Fecha</th>
-                                <th>Hora</th>
-                                <th>Docente</th>
-                                <th>Asignatura</th>
-                                <th>Carrera</th>
-                                <th>Aula</th>
-                                <th>Cant.</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for reserva in reservas_pendientes %}
-                            <tr>
-                                <td><strong>#{{ reserva.id_reserva }}</strong></td>
-                                <td>{{ reserva.fecha_uso|date:"d/m/Y" }}</td>
-                                <td>{{ reserva.hora_inicio|time:"H:i" }} - {{ reserva.hora_fin|time:"H:i" }}</td>
-                                <td>{{ reserva.id_usuario.nom_completo }}</td>
-                                <td>{{ reserva.id_asignatura.nom_asignatura }}</td>
-                                <td>{{ reserva.id_carrera.nom_carrera }}</td>
-                                <td>{{ reserva.id_aula.nom_aula }}</td>
-                                <td><span class="tag is-info">{{ reserva.cant_solicitada }}</span></td>
-                                <td>
-                                    <div class="buttons are-small">
-                                        <button class="button is-success is-small">
-                                            <span class="icon"><i class="fas fa-check"></i></span>
-                                        </button>
-                                        <button class="button is-danger is-small">
-                                            <span class="icon"><i class="fas fa-times"></i></span>
-                                        </button>
-                                        <button class="button is-info is-small">
+                <!-- Pestañas -->
+                <div class="tabs is-boxed">
+                    <ul>
+                        <li class="is-active" data-tab="pendientes">
+                            <a>
+                                <span class="icon"><i class="fas fa-clock"></i></span>
+                                <span>Pendientes</span>
+                                <span class="tag is-warning ml-2">{{ reservas_pendientes|length }}</span>
+                            </a>
+                        </li>
+                        <li data-tab="aprobadas">
+                            <a>
+                                <span class="icon"><i class="fas fa-check-circle"></i></span>
+                                <span>Aprobadas</span>
+                                <span class="tag is-success ml-2">{{ reservas_aprobadas|length }}</span>
+                            </a>
+                        </li>
+                        <li data-tab="rechazadas">
+                            <a>
+                                <span class="icon"><i class="fas fa-times-circle"></i></span>
+                                <span>Rechazadas</span>
+                                <span class="tag is-danger ml-2">{{ reservas_rechazadas|length }}</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Contenido de Pestaña: PENDIENTES -->
+                <div class="tab-content is-active" id="tab-pendientes">
+                    {% if reservas_pendientes %}
+                    <div class="table-container">
+                        <table class="table is-fullwidth is-striped is-hoverable">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Hora</th>
+                                    <th>Docente</th>
+                                    <th>Carrera</th>
+                                    <th>Bloque</th>
+                                    <th>Aula</th>
+                                    <th>Cant.</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for reserva in reservas_pendientes %}
+                                <tr>
+                                    <td>{{ reserva.fecha_uso|date:"d/m/Y" }}</td>
+                                    <td>{{ reserva.hora_inicio|time:"H:i" }} - {{ reserva.hora_fin|time:"H:i" }}</td>
+                                    <td>{{ reserva.id_usuario.nom_completo }}</td>
+                                    <td>{{ reserva.id_carrera.nom_carrera }}</td>
+                                    <td><span class="tag is-light">{{ reserva.id_aula.id_bloque.nom_bloque }}</span></td>
+                                    <td>{{ reserva.id_aula.nom_aula }}</td>
+                                    <td><span class="tag is-info">{{ reserva.cant_solicitada }}</span></td>
+                                    <td>
+                                        <div class="buttons are-small">
+                                            <button class="button is-success is-small" onclick="aprobarReserva({{ reserva.id_reserva }})" title="Aprobar">
+                                                <span class="icon"><i class="fas fa-check"></i></span>
+                                            </button>
+                                            <button class="button is-danger is-small" onclick="mostrarModalRechazo({{ reserva.id_reserva }})" title="Rechazar">
+                                                <span class="icon"><i class="fas fa-times"></i></span>
+                                            </button>
+                                            <button class="button is-info is-small" onclick="verDetalle({{ reserva.id_reserva }})" title="Ver detalle">
+                                                <span class="icon"><i class="fas fa-eye"></i></span>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="notification is-success is-light">
+                        <i class="fas fa-check-circle"></i> No hay reservas pendientes en este momento
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Contenido de Pestaña: APROBADAS -->
+                <div class="tab-content" id="tab-aprobadas">
+                    {% if reservas_aprobadas %}
+                    <div class="table-container">
+                        <table class="table is-fullwidth is-striped is-hoverable">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Hora</th>
+                                    <th>Docente</th>
+                                    <th>Carrera</th>
+                                    <th>Bloque</th>
+                                    <th>Aula</th>
+                                    <th>Cant.</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for reserva in reservas_aprobadas %}
+                                <tr>
+                                    <td>{{ reserva.fecha_uso|date:"d/m/Y" }}</td>
+                                    <td>{{ reserva.hora_inicio|time:"H:i" }} - {{ reserva.hora_fin|time:"H:i" }}</td>
+                                    <td>{{ reserva.id_usuario.nom_completo }}</td>
+                                    <td>{{ reserva.id_carrera.nom_carrera }}</td>
+                                    <td><span class="tag is-light">{{ reserva.id_aula.id_bloque.nom_bloque }}</span></td>
+                                    <td>{{ reserva.id_aula.nom_aula }}</td>
+                                    <td><span class="tag is-success">{{ reserva.cant_solicitada }}</span></td>
+                                    <td>
+                                        <button class="button is-info is-small" onclick="verDetalle({{ reserva.id_reserva }})" title="Ver detalle">
                                             <span class="icon"><i class="fas fa-eye"></i></span>
                                         </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="notification is-info is-light">
+                        <i class="fas fa-info-circle"></i> No hay reservas aprobadas
+                    </div>
+                    {% endif %}
                 </div>
-                {% else %}
-                <div class="notification is-success is-light">
-                    <i class="fas fa-check-circle"></i> No hay reservas pendientes en este momento
+
+                <!-- Contenido de Pestaña: RECHAZADAS -->
+                <div class="tab-content" id="tab-rechazadas">
+                    {% if reservas_rechazadas %}
+                    <div class="table-container">
+                        <table class="table is-fullwidth is-striped is-hoverable">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Hora</th>
+                                    <th>Docente</th>
+                                    <th>Carrera</th>
+                                    <th>Bloque</th>
+                                    <th>Aula</th>
+                                    <th>Cant.</th>
+                                    <th>Motivo</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for reserva in reservas_rechazadas %}
+                                <tr>
+                                    <td>{{ reserva.fecha_uso|date:"d/m/Y" }}</td>
+                                    <td>{{ reserva.hora_inicio|time:"H:i" }} - {{ reserva.hora_fin|time:"H:i" }}</td>
+                                    <td>{{ reserva.id_usuario.nom_completo }}</td>
+                                    <td>{{ reserva.id_carrera.nom_carrera }}</td>
+                                    <td><span class="tag is-light">{{ reserva.id_aula.id_bloque.nom_bloque }}</span></td>
+                                    <td>{{ reserva.id_aula.nom_aula }}</td>
+                                    <td><span class="tag is-danger">{{ reserva.cant_solicitada }}</span></td>
+                                    <td>
+                                        <span class="tag is-warning" title="{{ reserva.motivo_rechazo }}">
+                                            {% if reserva.motivo_rechazo|length > 30 %}
+                                                {{ reserva.motivo_rechazo|slice:":30" }}...
+                                            {% else %}
+                                                {{ reserva.motivo_rechazo }}
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="button is-info is-small" onclick="verDetalle({{ reserva.id_reserva }})" title="Ver detalle">
+                                            <span class="icon"><i class="fas fa-eye"></i></span>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="notification is-info is-light">
+                        <i class="fas fa-info-circle"></i> No hay reservas rechazadas
+                    </div>
+                    {% endif %}
                 </div>
-                {% endif %}
             </div>
         </div>
     </section>
+
+    <!-- Modal de Rechazo -->
+    <div class="modal" id="modal-rechazo">
+        <div class="modal-background" onclick="cerrarModalRechazo()"></div>
+        <div class="modal-card">
+            <header class="modal-card-head has-background-danger">
+                <p class="modal-card-title has-text-white">
+                    <span class="icon"><i class="fas fa-times-circle"></i></span>
+                    <span>Rechazar Reserva</span>
+                </p>
+                <button class="delete" aria-label="close" onclick="cerrarModalRechazo()"></button>
+            </header>
+            <section class="modal-card-body">
+                <div class="field">
+                    <label class="label">Motivo del Rechazo *</label>
+                    <div class="control">
+                        <textarea id="motivo-rechazo" class="textarea" placeholder="Explique el motivo por el cual se rechaza esta solicitud..." rows="4" required></textarea>
+                    </div>
+                    <p class="help">Este motivo será visible para el docente</p>
+                </div>
+                <div id="error-rechazo" class="notification is-danger is-light" style="display: none;"></div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-danger" onclick="confirmarRechazo()">
+                    <span class="icon"><i class="fas fa-times"></i></span>
+                    <span>Rechazar Reserva</span>
+                </button>
+                <button class="button" onclick="cerrarModalRechazo()">Cancelar</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Variables globales
+        let reservaIdParaRechazar = null;
+
+        // Manejar pestañas
+        document.querySelectorAll('.tabs li').forEach(tab => {
+            tab.addEventListener('click', function() {
+                // Remover active de todas las pestañas
+                document.querySelectorAll('.tabs li').forEach(t => t.classList.remove('is-active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('is-active'));
+                
+                // Activar pestaña seleccionada
+                this.classList.add('is-active');
+                const tabName = this.getAttribute('data-tab');
+                document.getElementById(`tab-${tabName}`).classList.add('is-active');
+            });
+        });
+
+        // Aprobar reserva
+        function aprobarReserva(reservaId) {
+            if (!confirm('¿Está seguro de aprobar esta reserva?')) {
+                return;
+            }
+
+            fetch(`/reserva/${reservaId}/aprobar/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al aprobar la reserva');
+            });
+        }
+
+        // Mostrar modal de rechazo
+        function mostrarModalRechazo(reservaId) {
+            reservaIdParaRechazar = reservaId;
+            document.getElementById('motivo-rechazo').value = '';
+            document.getElementById('error-rechazo').style.display = 'none';
+            document.getElementById('modal-rechazo').classList.add('is-active');
+        }
+
+        // Cerrar modal de rechazo
+        function cerrarModalRechazo() {
+            document.getElementById('modal-rechazo').classList.remove('is-active');
+            reservaIdParaRechazar = null;
+        }
+
+        // Confirmar rechazo
+        function confirmarRechazo() {
+            const motivo = document.getElementById('motivo-rechazo').value.trim();
+            const errorDiv = document.getElementById('error-rechazo');
+
+            if (!motivo) {
+                errorDiv.textContent = 'Debe proporcionar un motivo para el rechazo';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            fetch(`/reserva/${reservaIdParaRechazar}/rechazar/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ motivo: motivo })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    cerrarModalRechazo();
+                    location.reload();
+                } else {
+                    errorDiv.textContent = 'Error: ' + data.error;
+                    errorDiv.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                errorDiv.textContent = 'Error al rechazar la reserva';
+                errorDiv.style.display = 'block';
+            });
+        }
+
+        // Ver detalle (placeholder)
+        function verDetalle(reservaId) {
+            alert(`Ver detalle de reserva #${reservaId} - Funcionalidad por implementar`);
+        }
+
+        // Obtener cookie CSRF
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+
+    <style>
+        .tab-content {
+            display: none;
+        }
+        .tab-content.is-active {
+            display: block;
+        }
+        .tabs li {
+            cursor: pointer;
+        }
+    </style>
 </body>
 </html>
