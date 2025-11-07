@@ -56,11 +56,17 @@ class Reserva(models.Model):
     hora_inicio = models.TimeField(db_column='Hora_Inicio')
     hora_fin = models.TimeField(db_column='Hora_Fin')
     cant_solicitada = models.IntegerField(db_column='Cant_Solicitada')
-    estado_reserva = models.CharField(max_length=20, db_column='Estado_Reserva')
-
-    #Campos adicionales para el responsable
-    responsable_entrega = models.CharField(max_length=150, db_column='Responsable_Entrega', help_text='Nombre del responsable de recibir los equipos', default='')
-    telefono_contacto = models.CharField(max_length=10, db_column='Telefono_Contacto', help_text='Teléfono de contacto del responsable', default='')
+    estado_reserva = models.CharField(max_length=20, db_column='Estado_Reserva', default='Pendiente')
+    
+    # Campos adicionales para el responsable
+    responsable_entrega = models.CharField(max_length=150, db_column='Responsable_Entrega', 
+                                          help_text='Nombre del responsable de recibir los equipos')
+    telefono_contacto = models.CharField(max_length=10, db_column='Telefono_Contacto',
+                                        help_text='Teléfono de contacto del responsable')
+    
+    # Campo para motivo de rechazo
+    motivo_rechazo = models.TextField(db_column='Motivo_Rechazo', blank=True, null=True,
+                                      help_text='Motivo por el cual se rechazó la reserva')
     
     # Relaciones
     id_usuario = models.ForeignKey(
