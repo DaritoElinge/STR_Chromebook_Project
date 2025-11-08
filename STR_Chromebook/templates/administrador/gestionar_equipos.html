@@ -1,0 +1,519 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Equipos</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar" style="background-color: var(--color-cuarto) !important;">
+        <div class="navbar-brand">
+            <a class="navbar-item" href="{% url 'dashboard_administrador' %}">
+                <img src="{% static 'img/icon_booking.png' %}" alt="Logo" style="max-height: 40px;">
+            </a>
+            <a class="navbar-item">
+                <strong class="has-text-dark">Gestionar Equipos</strong>
+            </a>
+        </div>
+        <div class="navbar-menu">
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <a href="{% url 'dashboard_administrador' %}" class="button is-light">
+                        <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                        <span>Volver</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mensajes -->
+    {% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+        
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Contenido -->
+    <section class="section">
+        <div class="container">
+            <!-- Título -->
+            <div class="block">
+                <h1 class="title is-3 has-text-dark">
+                    <span class="icon-text">
+                        <span class="icon" style="color: var(--color-cuarto);"><i class="fas fa-laptop"></i></span>
+                        <span>Gestión de Equipos Chromebook</span>
+                    </span>
+                </h1>
+            </div>
+
+            <!-- Estadísticas -->
+            <div class="columns is-multiline mb-4">
+                <div class="column is-one-quarter">
+                    <div class="box has-text-centered">
+                        <p class="heading">Total de Equipos</p>
+                        <p class="title">{{ total_equipos }}</p>
+                    </div>
+                </div>
+                <div class="column is-one-quarter">
+                    <div class="box has-text-centered has-background-success-light">
+                        <p class="heading">Disponibles</p>
+                        <p class="title has-text-success">{{ equipos_disponibles }}</p>
+                    </div>
+                </div>
+                <div class="column is-one-quarter">
+                    <div class="box has-text-centered has-background-info-light">
+                        <p class="heading">En Uso</p>
+                        <p class="title has-text-info">{{ equipos_en_uso }}</p>
+                    </div>
+                </div>
+                <div class="column is-one-quarter">
+                    <div class="box has-text-centered has-background-danger-light">
+                        <p class="heading">Mantenimiento</p>
+                        <p class="title has-text-danger">{{ equipos_mantenimiento }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtros y Búsqueda -->
+            <div class="box">
+                <form method="GET" class="columns is-vcentered">
+                    <div class="column is-4">
+                        <div class="field">
+                            <label class="label is-small">Buscar</label>
+                            <div class="control has-icons-left">
+                                <input class="input" type="text" name="q" placeholder="Nombre, serie o modelo..." value="{{ busqueda }}">
+                                <span class="icon is-left"><i class="fas fa-search"></i></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-3">
+                        <div class="field">
+                            <label class="label is-small">Estado</label>
+                            <div class="select is-fullwidth">
+                                <select name="estado">
+                                    <option value="">Todos</option>
+                                    {% for estado in estados %}
+                                    <option value="{{ estado.nom_estado }}" {% if estado_filtro == estado.nom_estado %}selected{% endif %}>
+                                        {{ estado.nom_estado }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-3">
+                        <div class="field">
+                            <label class="label is-small">Rack</label>
+                            <div class="select is-fullwidth">
+                                <select name="rack">
+                                    <option value="">Todos</option>
+                                    {% for rack in racks %}
+                                    <option value="{{ rack.id_rack }}" {% if rack_filtro == rack.id_rack|stringformat:"s" %}selected{% endif %}>
+                                        {{ rack.nom_rack }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-2">
+                        <div class="field">
+                            <label class="label is-small">&nbsp;</label>
+                            <button type="submit" class="button is-info is-fullwidth">
+                                <span class="icon"><i class="fas fa-filter"></i></span>
+                                <span>Filtrar</span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="level mt-4">
+                    <div class="level-left">
+                        <div class="level-item">
+                            <p class="subtitle is-6">
+                                Mostrando <strong>{{ equipos|length }}</strong> equipo(s)
+                            </p>
+                        </div>
+                    </div>
+                    <div class="level-right">
+                        <div class="level-item">
+                            <button class="button is-success" onclick="mostrarModalCrear()">
+                                <span class="icon"><i class="fas fa-plus"></i></span>
+                                <span>Nuevo Equipo</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de Equipos -->
+            <div class="box">
+                <div class="table-container">
+                    <table class="table is-fullwidth is-striped is-hoverable">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Número de Serie</th>
+                                <th>Modelo</th>
+                                <th>Estado</th>
+                                <th>Rack</th>
+                                <th>Ubicación</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for equipo in equipos %}
+                            <tr>
+                                <td><strong>{{ equipo.nom_equipo }}</strong></td>
+                                <td><code>{{ equipo.num_serie }}</code></td>
+                                <td>{{ equipo.modelo }}</td>
+                                <td>
+                                    {% if equipo.id_estado_equipo.nom_estado == 'Disponible' %}
+                                    <span class="tag is-success">{{ equipo.id_estado_equipo.nom_estado }}</span>
+                                    {% elif equipo.id_estado_equipo.nom_estado == 'En uso' %}
+                                    <span class="tag is-info">{{ equipo.id_estado_equipo.nom_estado }}</span>
+                                    {% elif equipo.id_estado_equipo.nom_estado == 'Mantenimiento' %}
+                                    <span class="tag is-warning">{{ equipo.id_estado_equipo.nom_estado }}</span>
+                                    {% elif equipo.id_estado_equipo.nom_estado == 'Dañado' %}
+                                    <span class="tag is-danger">{{ equipo.id_estado_equipo.nom_estado }}</span>
+                                    {% else %}
+                                    <span class="tag is-light">{{ equipo.id_estado_equipo.nom_estado }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ equipo.id_rack.nom_rack|default:"Sin asignar" }}</td>
+                                <td>{{ equipo.id_rack.ubicacion|default:"N/A" }}</td>
+                                <td>
+                                    <div class="buttons are-small">
+                                        <button class="button is-info is-small" onclick="verDetalleEquipo({{ equipo.id_equipo }})" title="Ver detalle">
+                                            <span class="icon"><i class="fas fa-eye"></i></span>
+                                        </button>
+                                        <button class="button is-warning is-small" onclick="mostrarModalEditar({{ equipo.id_equipo }})" title="Editar">
+                                            <span class="icon"><i class="fas fa-edit"></i></span>
+                                        </button>
+                                        <button class="button is-danger is-small" onclick="eliminarEquipo({{ equipo.id_equipo }}, '{{ equipo.nom_equipo }}')" title="Dar de baja">
+                                            <span class="icon"><i class="fas fa-trash"></i></span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="has-text-centered">
+                                    <p class="has-text-grey">No se encontraron equipos</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Modal Crear/Editar Equipo -->
+    <div class="modal" id="modal-equipo">
+        <div class="modal-background" onclick="cerrarModalEquipo()"></div>
+        <div class="modal-card">
+            <header class="modal-card-head" style="background-color: var(--color-primero);">
+                <p class="modal-card-title has-text-white" id="modal-equipo-titulo">
+                    <span class="icon"><i class="fas fa-laptop"></i></span>
+                    <span>Nuevo Equipo</span>
+                </p>
+                <button class="delete" aria-label="close" onclick="cerrarModalEquipo()"></button>
+            </header>
+            <section class="modal-card-body">
+                <form id="form-equipo">
+                    <input type="hidden" id="equipo-id" value="">
+                    
+                    <div class="field">
+                        <label class="label">Nombre del Equipo *</label>
+                        <div class="control">
+                            <input class="input" type="text" id="nom-equipo" placeholder="Ej: CHR-001" required>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label class="label">Número de Serie *</label>
+                        <div class="control">
+                            <input class="input" type="text" id="num-serie" placeholder="Ej: ABC123XYZ789" required>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label class="label">Modelo *</label>
+                        <div class="control">
+                            <input class="input" type="text" id="modelo" placeholder="Ej: HP Chromebook 14" required>
+                        </div>
+                    </div>
+
+                    <div class="columns">
+                        <div class="column">
+                            <div class="field">
+                                <label class="label">Estado *</label>
+                                <div class="select is-fullwidth">
+                                    <select id="id-estado" required>
+                                        {% for estado in estados %}
+                                        <option value="{{ estado.id_estado_equipo }}">{{ estado.nom_estado }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="column">
+                            <div class="field">
+                                <label class="label">Rack</label>
+                                <div class="select is-fullwidth">
+                                    <select id="id-rack">
+                                        <option value="">Sin asignar</option>
+                                        {% for rack in racks %}
+                                        <option value="{{ rack.id_rack }}">{{ rack.nom_rack }} - {{ rack.ubicacion }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="error-equipo" class="notification is-danger" style="display: none;"></div>
+                </form>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-success" onclick="guardarEquipo()">
+                    <span class="icon"><i class="fas fa-save"></i></span>
+                    <span>Guardar</span>
+                </button>
+                <button class="button" onclick="cerrarModalEquipo()">Cancelar</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Modal Detalle Equipo -->
+    <div class="modal" id="modal-detalle-equipo">
+        <div class="modal-background" onclick="cerrarModalDetalleEquipo()"></div>
+        <div class="modal-card">
+            <header class="modal-card-head has-background-info">
+                <p class="modal-card-title has-text-white">
+                    <span class="icon"><i class="fas fa-info-circle"></i></span>
+                    <span>Detalle del Equipo</span>
+                </p>
+                <button class="delete" aria-label="close" onclick="cerrarModalDetalleEquipo()"></button>
+            </header>
+            <section class="modal-card-body">
+                <div id="detalle-equipo-loading" class="has-text-centered" style="padding: 2rem;">
+                    <span class="icon is-large">
+                        <i class="fas fa-spinner fa-pulse fa-2x"></i>
+                    </span>
+                </div>
+                
+                <div id="detalle-equipo-contenido" style="display: none;">
+                    <table class="table is-fullwidth">
+                        <tbody>
+                            <tr>
+                                <td><strong>Nombre:</strong></td>
+                                <td id="detalle-eq-nombre"></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Número de Serie:</strong></td>
+                                <td><code id="detalle-eq-serie"></code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Modelo:</strong></td>
+                                <td id="detalle-eq-modelo"></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Estado:</strong></td>
+                                <td id="detalle-eq-estado"></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Rack:</strong></td>
+                                <td id="detalle-eq-rack"></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Ubicación:</strong></td>
+                                <td id="detalle-eq-ubicacion"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-light" onclick="cerrarModalDetalleEquipo()">Cerrar</button>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        let modoEdicion = false;
+
+        // Mostrar modal crear
+        function mostrarModalCrear() {
+            modoEdicion = false;
+            document.getElementById('modal-equipo-titulo').innerHTML = '<span class="icon"><i class="fas fa-laptop"></i></span><span>Nuevo Equipo</span>';
+            document.getElementById('equipo-id').value = '';
+            document.getElementById('form-equipo').reset();
+            document.getElementById('error-equipo').style.display = 'none';
+            document.getElementById('modal-equipo').classList.add('is-active');
+        }
+
+        // Mostrar modal editar
+        function mostrarModalEditar(equipoId) {
+            modoEdicion = true;
+            document.getElementById('modal-equipo-titulo').innerHTML = '<span class="icon"><i class="fas fa-edit"></i></span><span>Editar Equipo</span>';
+            
+            // Cargar datos del equipo
+            fetch(`/equipo/${equipoId}/detalle/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const eq = data.equipo;
+                        document.getElementById('equipo-id').value = eq.id;
+                        document.getElementById('nom-equipo').value = eq.nom_equipo;
+                        document.getElementById('num-serie').value = eq.num_serie;
+                        document.getElementById('modelo').value = eq.modelo;
+                        document.getElementById('id-estado').value = eq.id_estado;
+                        document.getElementById('id-rack').value = eq.id_rack || '';
+                        document.getElementById('modal-equipo').classList.add('is-active');
+                    } else {
+                        alert('Error al cargar datos: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al cargar el equipo');
+                });
+        }
+
+        // Cerrar modal
+        function cerrarModalEquipo() {
+            document.getElementById('modal-equipo').classList.remove('is-active');
+        }
+
+        // Guardar equipo
+        function guardarEquipo() {
+            const errorDiv = document.getElementById('error-equipo');
+            errorDiv.style.display = 'none';
+
+            const data = {
+                nom_equipo: document.getElementById('nom-equipo').value.trim(),
+                num_serie: document.getElementById('num-serie').value.trim(),
+                modelo: document.getElementById('modelo').value.trim(),
+                id_estado: document.getElementById('id-estado').value,
+                id_rack: document.getElementById('id-rack').value || null
+            };
+
+            if (!data.nom_equipo || !data.num_serie || !data.modelo || !data.id_estado) {
+                errorDiv.textContent = 'Todos los campos marcados con * son obligatorios';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            const equipoId = document.getElementById('equipo-id').value;
+            const url = modoEdicion ? `/equipo/${equipoId}/editar/` : '/equipo/crear/';
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    cerrarModalEquipo();
+                    location.reload();
+                } else {
+                    errorDiv.textContent = 'Error: ' + data.error;
+                    errorDiv.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                errorDiv.textContent = 'Error al guardar el equipo';
+                errorDiv.style.display = 'block';
+            });
+        }
+
+        // Eliminar equipo
+        function eliminarEquipo(equipoId, nombre) {
+            if (!confirm(`¿Está seguro de dar de baja el equipo "${nombre}"?`)) {
+                return;
+            }
+
+            fetch(`/equipo/${equipoId}/eliminar/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al eliminar el equipo');
+            });
+        }
+
+        // Ver detalle equipo
+        function verDetalleEquipo(equipoId) {
+            document.getElementById('modal-detalle-equipo').classList.add('is-active');
+            document.getElementById('detalle-equipo-loading').style.display = 'block';
+            document.getElementById('detalle-equipo-contenido').style.display = 'none';
+
+            fetch(`/equipo/${equipoId}/detalle/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const eq = data.equipo;
+                        document.getElementById('detalle-eq-nombre').textContent = eq.nom_equipo;
+                        document.getElementById('detalle-eq-serie').textContent = eq.num_serie;
+                        document.getElementById('detalle-eq-modelo').textContent = eq.modelo;
+                        document.getElementById('detalle-eq-estado').innerHTML = `<span class="tag is-info">${eq.estado}</span>`;
+                        document.getElementById('detalle-eq-rack').textContent = eq.rack;
+                        document.getElementById('detalle-eq-ubicacion').textContent = eq.ubicacion;
+
+                        document.getElementById('detalle-equipo-loading').style.display = 'none';
+                        document.getElementById('detalle-equipo-contenido').style.display = 'block';
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Cerrar modal detalle
+        function cerrarModalDetalleEquipo() {
+            document.getElementById('modal-detalle-equipo').classList.remove('is-active');
+        }
+
+        // Obtener CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+</html>

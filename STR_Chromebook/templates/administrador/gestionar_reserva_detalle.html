@@ -1,0 +1,559 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-M">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Reserva #{{ reserva.id_reserva }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar" style="background-color: var(--color-cuarto) !important;">
+        <div class="navbar-brand">
+            <a class="navbar-item" href="{% url 'dashboard_administrador' %}">
+                <img src="{% static 'img/icon_booking.png' %}" alt="Logo" style="max-height: 40px;">
+            </a>
+            <a class="navbar-item">
+                <strong class="has-text-dark">Gestionar Reserva #{{ reserva.id_reserva }}</strong>
+            </a>
+        </div>
+        <div class="navbar-menu">
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <span class="icon-text has-text-dark">
+                        <span class="icon"><i class="fas fa-user-shield"></i></span>
+                        <span><strong>{{ usuario.nom_completo }}</strong></span>
+                    </span>
+                </div>
+                <div class="navbar-item">
+                    <!-- Botón para volver a la lista -->
+                    <a href="{% url 'gestionar_reservas_list' %}" class="button is-light is-small">
+                        <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                        <span>Volver a la Lista</span>
+                    </a>
+                </div>
+                <div class="navbar-item">
+                    <a href="{% url 'logout' %}" class="button is-danger is-light is-small">
+                        <span class="icon"><i class="fas fa-sign-out-alt"></i></span>
+                        <span>Cerrar Sesión</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mensajes de Django (para subida de fotos, etc.) -->
+    {% if messages %}
+    <div class="container" style="margin-top: 5.5rem; margin-bottom: -1.5rem;">
+        {% for message in messages %}
+        <div class="notification is-{{ message.tags }}">
+            <button class="delete" onclick="this.parentElement.remove()"></button>
+            {{ message|safe }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Contenido -->
+    <section class="section">
+        <div class="container">
+            <!-- Título -->
+            <div class="level">
+                <div class="level-left">
+                    <div>
+                        <h1 class="title is-3 has-text-dark">
+                            Gestión de Reserva #{{ reserva.id_reserva }}
+                        </h1>
+                        <p class="subtitle">
+                            <strong>Docente:</strong> {{ reserva.id_usuario.nom_completo }} | 
+                            <strong>Fecha:</strong> {{ reserva.fecha_uso|date:"d/m/Y" }} |
+                            <strong>Estado:</strong> 
+                            {% if reserva.estado_reserva == 'Aprobada' %}
+                            <span class="tag is-success">{{ reserva.estado_reserva }}</span>
+                            {% elif reserva.estado_reserva == 'Pendiente' %}
+                            <span class="tag is-warning">{{ reserva.estado_reserva }}</span>
+                            {% elif reserva.estado_reserva == 'Rechazada' %}
+                            <span class="tag is-danger">{{ reserva.estado_reserva }}</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="level-right">
+                    <div class="box has-background-info-light has-text-centered">
+                        <p class="heading">Equipos Solicitados</p>
+                        <p class="title" id="conteo-solicitados">{{ reserva.cant_solicitada }}</p>
+                    </div>
+                    <div class="box has-background-dark has-text-centered ml-2">
+                        <p class="heading has-text-white">Equipos Asignados</p>
+                        <p class="title has-text-white" id="conteo-asignados">{{ equipos_asignados|length }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="columns">
+                <!-- Columna Izquierda: Asignaciones -->
+                <div class="column is-two-thirds">
+                    <!-- 1. Asignar Equipos -->
+                    <div class="box">
+                        <h3 class="title is-5">
+                            <span class="icon"><i class="fas fa-laptop"></i></span>
+                            Asignar Equipos
+                        </h3>
+                        <div class="field is-grouped">
+                            <div class="control is-expanded">
+                                <div class="select is-fullwidth">
+                                    <select id="select-equipo-disponible">
+                                        <option value="">Seleccione un equipo disponible...</option>
+                                        {% for equipo in equipos_disponibles %}
+                                        <option value="{{ equipo.id_equipo }}">
+                                            {{ equipo.nom_equipo }} | {{ equipo.num_serie }} | (Rack: {{ equipo.id_rack.nom_rack|default:"N/A" }})
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="control">
+                                <button class="button is-success" onclick="asignarEquipo()">
+                                    <span class="icon"><i class="fas fa-plus"></i></span>
+                                    <span>Asignar</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="error-asignar-equipo" class="notification is-danger" style="display: none;"></div>
+                        
+                        <h4 class="title is-6 mt-4">Equipos Asignados ({{ equipos_asignados|length }})</h4>
+                        <div class="table-container" style="max-height: 250px; overflow-y: auto;">
+                            <table class="table is-fullwidth is-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>N° Serie</th>
+                                        <th>Rack</th>
+                                        <th>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lista-equipos-asignados">
+                                    {% for asignacion in equipos_asignados %}
+                                    <tr id="asig-equipo-{{ asignacion.id_asig_equipo }}">
+                                        <td>{{ asignacion.id_equipo.nom_equipo }}</td>
+                                        <td><code>{{ asignacion.id_equipo.num_serie }}</code></td>
+                                        <td>{{ asignacion.id_equipo.id_rack.nom_rack|default:"N/A" }}</td>
+                                        <td>
+                                            <button class="button is-danger is-small" onclick="desasignarEquipo({{ asignacion.id_asig_equipo }})">
+                                                <span class="icon"><i class="fas fa-times"></i></span>
+                                                <span>Quitar</span>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% if not equipos_asignados %}
+                                    <tr>
+                                        <td colspan="4" class="has-text-centered">Aún no hay equipos asignados.</td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 2. Asignar Supervisores -->
+                    <div class="box">
+                        <h3 class="title is-5">
+                            <span class="icon"><i class="fas fa-user-shield"></i></span>
+                            Asignar Supervisores
+                        </h3>
+                        <div class="field is-grouped">
+                            <div class="control is-expanded">
+                                <div class="select is-fullwidth">
+                                    <select id="select-supervisor-disponible">
+                                        <option value="">Seleccione un supervisor...</option>
+                                        {% for supervisor in supervisores_disponibles %}
+                                        <option value="{{ supervisor.id_usuario }}">{{ supervisor.nom_completo }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="control">
+                                <button class="button is-success" onclick="asignarSupervisor()">
+                                    <span class="icon"><i class="fas fa-plus"></i></span>
+                                    <span>Asignar</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="error-asignar-supervisor" class="notification is-danger" style="display: none;"></div>
+
+                        <h4 class="title is-6 mt-4">Supervisores Asignados</h4>
+                        <table class="table is-fullwidth is-striped">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Email</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lista-supervisores-asignados">
+                                {% for asignacion in supervisores_asignados %}
+                                <tr id="asig-sup-{{ asignacion.id_supervisor_reserva }}">
+                                    <td>{{ asignacion.id_supervisor.nom_completo }}</td>
+                                    <td>{{ asignacion.id_supervisor.email }}</td>
+                                    <td>
+                                        <button class="button is-danger is-small" onclick="desasignarSupervisor({{ asignacion.id_supervisor_reserva }})">
+                                            <span class="icon"><i class="fas fa-times"></i></span>
+                                            <span>Quitar</span>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% if not supervisores_asignados %}
+                                <tr>
+                                    <td colspan="3" class="has-text-centered">Aún no hay supervisores asignados.</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 3. Subir Evidencias -->
+                    <div class="box">
+                        <h3 class="title is-5">
+                            <span class="icon"><i class="fas fa-camera"></i></span>
+                            Gestión de Evidencias
+                        </h3>
+                        
+                        <!-- Formulario de subida de fotos -->
+                        <form method="POST" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <div class="field">
+                                <label class="label">{{ form_evidencia.tipo_evidencia.label }}</label>
+                                <div class="control">
+                                    <div class="select is-fullwidth">
+                                        {{ form_evidencia.tipo_evidencia }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form_evidencia.foto.label }}</label>
+                                <div class="control">
+                                    {{ form_evidencia.foto }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form_evidencia.descripcion.label }}</label>
+                                <div class="control">
+                                    {{ form_evidencia.descripcion }}
+                                </div>
+                            </div>
+                            {% if form_evidencia.errors %}
+                            <div class="notification is-danger is-light">
+                                {{ form_evidencia.errors }}
+                            </div>
+                            {% endif %}
+                            <div class="field">
+                                <button type="submit" class="button is-link">
+                                    <span class="icon"><i class="fas fa-upload"></i></span>
+                                    <span>Subir Evidencia</span>
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <hr>
+                        <!-- Galería de Evidencias -->
+                        <h4 class="title is-6 mt-4">Evidencias Subidas</h4>
+                        <div class="evidencia-gallery" id="evidencia-gallery">
+                            {% for evidencia in evidencias %}
+                            <div class="evidencia-card" id="evidencia-{{ evidencia.id_evidencia }}">
+                                <a href="{{ evidencia.foto.url }}" target="_blank">
+                                    <img src="{{ evidencia.foto.url }}" alt="{{ evidencia.descripcion }}">
+                                </a>
+                                <div class="evidencia-info">
+                                    <p class="is-size-7"><strong>Tipo:</strong> {{ evidencia.get_tipo_evidencia_display }}</p>
+                                    <p class="is-size-7"><strong>Desc:</strong> {{ evidencia.descripcion|truncatechars:50 }}</p>
+                                </div>
+                                <button class="delete-btn" title="Eliminar" onclick="eliminarEvidencia({{ evidencia.id_evidencia }})">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            {% endfor %}
+                            {% if not evidencias %}
+                            <p class="has-text-grey" id="no-evidencias">No se han subido evidencias.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Columna Derecha: Resumen y Gestión -->
+                <div class="column is-one-third">
+                    <!-- 4. Resumen de la Solicitud -->
+                    <div class="box">
+                        <h3 class="title is-5">Resumen de la Solicitud</h3>
+                        <table class="table is-fullwidth is-striped">
+                            <tbody>
+                                <tr>
+                                    <td><strong>Docente:</strong></td>
+                                    <td>{{ reserva.id_usuario.nom_completo }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Asignatura:</strong></td>
+                                    <td>{{ reserva.id_asignatura.nom_asignatura }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Carrera:</strong></td>
+                                    <td>{{ reserva.id_carrera.nom_carrera }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Ubicación:</strong></td>
+                                    <td>{{ reserva.id_aula.id_bloque.nom_bloque }} / {{ reserva.id_aula.nom_aula }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Responsable:</strong></td>
+                                    <td>{{ reserva.responsable_entrega }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Teléfono:</strong></td>
+                                    <td>{{ reserva.telefono_contacto }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 5. Observaciones y Cierre -->
+                    <div class="box">
+                        <h3 class="title is-5">Gestión y Cierre</h3>
+                        <div class="field">
+                            <label class="label">Observaciones (Uso, Devolución, Anomalías)</label>
+                            <div class="control">
+                                <textarea id="observaciones" class="textarea" rows="4" placeholder="Registre cualquier novedad...">{{ reserva.observaciones|default_if_none:"" }}</textarea>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">Fecha/Hora Entrega de Equipos</label>
+                            <div class="control">
+                                <!-- Formato Y-m-d\TH:i es crucial para datetime-local -->
+                                <input id="fecha-entrega" class="input" type="datetime-local" value="{{ reserva.fecha_entrega|date:'Y-m-d\TH:i' }}">
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">Fecha/Hora Devolución de Equipos</label>
+                            <div class="control">
+                                <input id="fecha-devolucion" class="input" type="datetime-local" value="{{ reserva.fecha_devolucion|date:'Y-m-d\TH:i' }}">
+                            </div>
+                        </div>
+                        <div id="error-guardar-gestion" class="notification is-danger" style="display: none;"></div>
+                        <div class="field">
+                            <button class="button is-info is-fullwidth" onclick="guardarGestion()">
+                                <span class="icon"><i class="fas fa-save"></i></span>
+                                <span>Guardar Gestión</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+<!-- JavaScript para las APIs -->
+<script>
+    // Variables globales
+    const RESERVA_ID = {{ reserva.id_reserva }};
+    const CSRF_TOKEN = getCookie('csrftoken');
+
+    // ===================================
+    // 1. GESTIÓN DE EQUIPOS
+    // ===================================
+    function asignarEquipo() {
+        const select = document.getElementById('select-equipo-disponible');
+        const equipoId = select.value;
+        const errorDiv = document.getElementById('error-asignar-equipo');
+        
+        if (!equipoId) {
+            showError(errorDiv, 'Debe seleccionar un equipo de la lista.');
+            return;
+        }
+
+        // ¡CORREGIDO! Usar la variable de Django 'reserva.id_reserva'
+        fetch(`{% url 'api_asignar_equipo' reserva.id_reserva %}`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': CSRF_TOKEN, 'Content-Type': 'application/json'},
+            body: JSON.stringify({ equipo_id: equipoId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Éxito: recargamos la página para ver los cambios
+                location.reload(); 
+            } else {
+                showError(errorDiv, data.error);
+            }
+        })
+        .catch(err => showError(errorDiv, 'Error de red. Intente de nuevo.'));
+    }
+
+    function desasignarEquipo(asignacionId) {
+        if (!confirm('¿Está seguro de quitar este equipo de la reserva? (Volverá a estar "Disponible")')) {
+            return;
+        }
+
+        fetch(`{% url 'api_desasignar_equipo' 0 %}`.replace('0', asignacionId), {
+            method: 'POST',
+            headers: {'X-CSRFToken': CSRF_TOKEN}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload(); // Recargar para ver cambios
+            } else {
+                alert('Error al quitar equipo: ' + data.error);
+            }
+        })
+        .catch(err => alert('Error de red.'));
+    }
+
+    // ===================================
+    // 2. GESTIÓN DE SUPERVISORES
+    // ===================================
+    function asignarSupervisor() {
+        const select = document.getElementById('select-supervisor-disponible');
+        const supervisorId = select.value;
+        const errorDiv = document.getElementById('error-asignar-supervisor');
+        
+        if (!supervisorId) {
+            showError(errorDiv, 'Debe seleccionar un supervisor de la lista.');
+            return;
+        }
+
+        // ¡CORREGIDO! Usar la variable de Django 'reserva.id_reserva'
+        fetch(`{% url 'api_asignar_supervisor' reserva.id_reserva %}`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': CSRF_TOKEN, 'Content-Type': 'application/json'},
+            body: JSON.stringify({ supervisor_id: supervisorId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                showError(errorDiv, data.error);
+            }
+        })
+        .catch(err => showError(errorDiv, 'Error de red. Intente de nuevo.'));
+    }
+
+    function desasignarSupervisor(asignacionId) {
+        if (!confirm('¿Está seguro de quitar este supervisor de la reserva?')) {
+            return;
+        }
+
+        fetch(`{% url 'api_desasignar_supervisor' 0 %}`.replace('0', asignacionId), {
+            method: 'POST',
+            headers: {'X-CSRFToken': CSRF_TOKEN}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error al quitar supervisor: ' + data.error);
+            }
+        })
+        .catch(err => alert('Error de red.'));
+    }
+
+    // ===================================
+    // 3. GESTIÓN DE EVIDENCIAS
+    // ===================================
+    function eliminarEvidencia(evidenciaId) {
+        if (!confirm('¿Está seguro de eliminar esta evidencia fotográfica? Esta acción no se puede deshacer.')) {
+            return;
+        }
+        
+        fetch(`{% url 'api_eliminar_evidencia' 0 %}`.replace('0', evidenciaId), {
+            method: 'POST',
+            headers: {'X-CSRFToken': CSRF_TOKEN}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Eliminar el card de la galería
+                const card = document.getElementById(`evidencia-${evidenciaId}`);
+                if (card) card.remove();
+                
+                // Comprobar si quedan más
+                const gallery = document.getElementById('evidencia-gallery');
+                if (gallery.childElementCount === 0 || (gallery.childElementCount === 1 && gallery.children[0].id === 'no-evidencias')) {
+                    gallery.innerHTML = '<p class="has-text-grey" id="no-evidencias">No se han subido evidencias.</p>';
+                }
+            } else {
+                alert('Error al eliminar la evidencia: ' + data.error);
+            }
+        })
+        .catch(err => alert('Error de red.'));
+    }
+
+    // ===================================
+    // 4. GESTIÓN DE CIERRE (OBSERVACIONES)
+    // ===================================
+    function guardarGestion() {
+        const errorDiv = document.getElementById('error-guardar-gestion');
+        const data = {
+            observaciones: document.getElementById('observaciones').value,
+            fecha_entrega: document.getElementById('fecha-entrega').value || null,
+            fecha_devolucion: document.getElementById('fecha-devolucion').value || null
+        };
+        
+        // Convertir a null si la fecha está vacía
+        if (data.fecha_entrega === "") data.fecha_entrega = null;
+        if (data.fecha_devolucion === "") data.fecha_devolucion = null;
+
+        // ¡CORREGIDO! Usar la variable de Django 'reserva.id_reserva'
+        fetch(`{% url 'api_actualizar_gestion' reserva.id_reserva %}`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': CSRF_TOKEN, 'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Éxito: recargamos para que Django muestre el mensaje de éxito
+                location.reload();
+            } else {
+                showError(errorDiv, data.error);
+            }
+        })
+        .catch(err => showError(errorDiv, 'Error de red. Intente de nuevo.'));
+    }
+
+    // ===================================
+    // UTILIDADES
+    // ===================================
+    function showError(errorDiv, message) {
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+        // Ocultar después de 5 segundos
+        setTimeout(() => {
+            errorDiv.style.display = 'none';
+        }, 5000);
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+
+</body>
+</html>

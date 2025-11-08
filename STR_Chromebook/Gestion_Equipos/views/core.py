@@ -1,10 +1,25 @@
-from django.shortcuts import render, redirect
+# ======================================================
+# VISTAS PRINCIPALES Y CRUDs BÁSICOS
+# (Lógica del dashboard, CRUD de Equipos, etc.)
+# ======================================================
+
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
-from core.models import Usuario
-from django.db import models
-from .models import Reserva
-from .forms import ReservaForm
+from django.db import models # Para models.Q
+import json
+
+# Importar Modelos
+from core.models import Usuario, Aula, Asignatura, Rack
+from Gestion_Equipos.models import Reserva, Equipo, EstadoEquipo
+
+# Importar Forms
+from Gestion_Equipos.forms import ReservaForm
+
+
+# ======================================================
+# VISTAS DE RESERVA (DOCENTE)
+# ======================================================
 
 def crear_reserva(request):
     """Vista para crear una nueva reserva de Chromebooks"""
@@ -54,6 +69,9 @@ def crear_reserva(request):
     
     return render(request, 'docente/crear_reserva.html', context)
 
+# ======================================================
+# APIs (AJAX) - CREACIÓN DE RESERVA (DOCENTE)
+# ======================================================
 
 def autocompletar_responsable(request):
     """API para autocompletar nombres de responsables"""
@@ -86,7 +104,6 @@ def filtrar_aulas_por_bloque(request):
         if not bloque_id:
             return JsonResponse({'aulas': []})
         
-        from core.models import Aula
         aulas = Aula.objects.filter(id_bloque_id=bloque_id).values('id_aula', 'nom_aula')
         
         return JsonResponse({'aulas': list(aulas)})
@@ -103,13 +120,15 @@ def filtrar_asignaturas_por_carrera(request):
         if not carrera_id:
             return JsonResponse({'asignaturas': []})
         
-        from core.models import Asignatura
         asignaturas = Asignatura.objects.filter(id_carrera_id=carrera_id).values('id_asignatura', 'nom_asignatura')
         
         return JsonResponse({'asignaturas': list(asignaturas)})
     
     return JsonResponse({'asignaturas': []})
 
+# ======================================================
+# APIs (AJAX) - DASHBOARD ADMIN (Aprobar/Rechazar)
+# ======================================================
 
 def aprobar_reserva(request, reserva_id):
     """Vista para aprobar una reserva"""
@@ -120,7 +139,6 @@ def aprobar_reserva(request, reserva_id):
     
     if request.method == 'POST':
         try:
-            from django.shortcuts import get_object_or_404
             reserva = get_object_or_404(Reserva, id_reserva=reserva_id)
             
             reserva.estado_reserva = 'Aprobada'
@@ -143,9 +161,6 @@ def rechazar_reserva(request, reserva_id):
     
     if request.method == 'POST':
         try:
-            from django.shortcuts import get_object_or_404
-            import json
-            
             data = json.loads(request.body)
             motivo = data.get('motivo', '').strip()
             
@@ -174,7 +189,6 @@ def detalle_reserva(request, reserva_id):
         return JsonResponse({'success': False, 'error': 'No autenticado'})
     
     try:
-        from django.shortcuts import get_object_or_404
         reserva = get_object_or_404(Reserva, id_reserva=reserva_id)
         
         # Construir respuesta JSON con todos los detalles
@@ -208,6 +222,9 @@ def detalle_reserva(request, reserva_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
 
+# ======================================================
+# VISTAS DE GESTIÓN DE EQUIPOS (ADMIN)
+# ======================================================
 
 def gestionar_equipos(request):
     """Vista para gestionar equipos (CRUD de Chromebooks)"""
@@ -221,18 +238,12 @@ def gestionar_equipos(request):
         messages.error(request, 'Acceso denegado.')
         return redirect('dashboard')
     
-    usuario_id = request.session.get('usuario_id')
-    from core.models import Usuario
-    usuario = Usuario.objects.get(id_usuario=usuario_id)
+    usuario = Usuario.objects.get(id_usuario=request.session.get('usuario_id'))
     
     # Filtros
     estado_filtro = request.GET.get('estado', '')
     rack_filtro = request.GET.get('rack', '')
     busqueda = request.GET.get('q', '')
-    
-    # Obtener equipos
-    from Gestion_Equipos.models import Equipo, EstadoEquipo
-    from core.models import Rack
     
     equipos = Equipo.objects.select_related('id_estado_equipo', 'id_rack')
     
@@ -278,6 +289,9 @@ def gestionar_equipos(request):
     
     return render(request, 'administrador/gestionar_equipos.html', context)
 
+# ======================================================
+# APIs (AJAX) - CRUD DE EQUIPOS (ADMIN)
+# ======================================================
 
 def crear_equipo(request):
     """Vista para crear un nuevo equipo"""
@@ -287,19 +301,27 @@ def crear_equipo(request):
     
     if request.method == 'POST':
         try:
-            import json
             data = json.loads(request.body)
-            
-            from Gestion_Equipos.models import Equipo, EstadoEquipo
-            from core.models import Rack
             
             # Validar que no exista el número de serie
             if Equipo.objects.filter(num_serie=data['num_serie']).exists():
                 return JsonResponse({'success': False, 'error': 'Ya existe un equipo con ese número de serie'})
             
-            # Crear equipo
+            # Obtener instancias
             estado = EstadoEquipo.objects.get(id_estado_equipo=data['id_estado'])
             rack = Rack.objects.get(id_rack=data['id_rack']) if data.get('id_rack') else None
+            
+            # <<<=====================================================>>>
+            # <<< VALIDACIÓN: Verificar capacidad del Rack            >>>
+            # <<<=====================================================>>>
+            if rack:
+                conteo_actual = Equipo.objects.filter(id_rack=rack).count()
+                if conteo_actual >= rack.capacidad_total:
+                    return JsonResponse({
+                        'success': False, 
+                        'error': f'El Rack {rack.nom_rack} está lleno (Capacidad máxima: {rack.capacidad_total} equipos)'
+                    })
+            # <<<=====================================================>>>
             
             equipo = Equipo.objects.create(
                 nom_equipo=data['nom_equipo'],
@@ -325,25 +347,36 @@ def editar_equipo(request, equipo_id):
     
     if request.method == 'POST':
         try:
-            import json
-            from django.shortcuts import get_object_or_404
             data = json.loads(request.body)
-            
-            from Gestion_Equipos.models import Equipo, EstadoEquipo
-            from core.models import Rack
-            
             equipo = get_object_or_404(Equipo, id_equipo=equipo_id)
             
             # Validar número de serie único (excepto el actual)
             if Equipo.objects.filter(num_serie=data['num_serie']).exclude(id_equipo=equipo_id).exists():
                 return JsonResponse({'success': False, 'error': 'Ya existe otro equipo con ese número de serie'})
             
+            # <<<=====================================================>>>
+            # <<< VALIDACIÓN: Verificar capacidad del Rack            >>>
+            # <<<=====================================================>>>
+            
+            rack_nuevo_id = data.get('id_rack')
+            rack_nuevo = Rack.objects.get(id_rack=rack_nuevo_id) if rack_nuevo_id else None
+            rack_anterior = equipo.id_rack
+            
+            if rack_nuevo and rack_nuevo != rack_anterior:
+                conteo_actual = Equipo.objects.filter(id_rack=rack_nuevo).count()
+                if conteo_actual >= rack_nuevo.capacidad_total:
+                    return JsonResponse({
+                        'success': False, 
+                        'error': f'No se puede mover al Rack {rack_nuevo.nom_rack} (Capacidad máxima: {rack_nuevo.capacidad_total} equipos)'
+                    })
+            # <<<=====================================================>>>
+
             # Actualizar datos
             equipo.nom_equipo = data['nom_equipo']
             equipo.num_serie = data['num_serie']
             equipo.modelo = data['modelo']
             equipo.id_estado_equipo = EstadoEquipo.objects.get(id_estado_equipo=data['id_estado'])
-            equipo.id_rack = Rack.objects.get(id_rack=data['id_rack']) if data.get('id_rack') else None
+            equipo.id_rack = rack_nuevo
             equipo.save()
             
             messages.success(request, f'✅ Equipo {equipo.nom_equipo} actualizado exitosamente.')
@@ -362,13 +395,10 @@ def eliminar_equipo(request, equipo_id):
     
     if request.method == 'POST':
         try:
-            from django.shortcuts import get_object_or_404
-            from Gestion_Equipos.models import Equipo, EstadoEquipo
-            
             equipo = get_object_or_404(Equipo, id_equipo=equipo_id)
             
             # En lugar de eliminar, cambiar a "Dado de baja"
-            estado_baja = EstadoEquipo.objects.get(nom_estado='Dado de baja')
+            estado_baja, _ = EstadoEquipo.objects.get_or_create(nom_estado='Dado de baja')
             equipo.id_estado_equipo = estado_baja
             equipo.save()
             
@@ -387,9 +417,6 @@ def detalle_equipo(request, equipo_id):
         return JsonResponse({'success': False, 'error': 'No autenticado'})
     
     try:
-        from django.shortcuts import get_object_or_404
-        from Gestion_Equipos.models import Equipo
-        
         equipo = get_object_or_404(Equipo, id_equipo=equipo_id)
         
         data = {

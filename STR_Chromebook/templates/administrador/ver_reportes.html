@@ -1,0 +1,278 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportes de Reservas</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <!-- Navbar (Copiada del dashboard) -->
+    <nav class="navbar" style="background-color: var(--color-cuarto) !important;">
+        <div class="navbar-brand">
+            <a class="navbar-item" href="{% url 'dashboard_administrador' %}">
+                <img src="{% static 'img/icon_booking.png' %}" alt="Logo" style="max-height: 40px;">
+            </a>
+            <a class="navbar-item">
+                <strong class="has-text-dark">Ver Reportes</strong> <!-- Título de la página -->
+            </a>
+        </div>
+        <div class="navbar-menu">
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <span class="icon-text has-text-dark">
+                        <span class="icon"><i class="fas fa-user-shield"></i></span>
+                        <span><strong>{{ usuario.nom_completo }}</strong></span>
+                    </span>
+                </div>
+                <div class="navbar-item">
+                    <a href="{% url 'dashboard_administrador' %}" class="button is-light is-small">
+                        <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                        <span>Volver al Dashboard</span>
+                    </a>
+                </div>
+                <div class="navbar-item">
+                    <a href="{% url 'logout' %}" class="button is-danger is-light is-small">
+                        <span class="icon"><i class="fas fa-sign-out-alt"></i></span>
+                        <span>Cerrar Sesión</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mensajes -->
+    {% if messages %}
+    <div class="container" style="margin-top: 5.5rem; margin-bottom: -1.5rem;">
+        {% for message in messages %}
+        <div class="notification is-{{ message.tags }}">
+            <button class="delete" onclick="this.parentElement.remove()"></button>
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Contenido -->
+    <section class="section">
+        <div class="container">
+            <!-- Título -->
+            <div class="block">
+                <h1 class="title is-3 has-text-dark">
+                    <span class="icon-text">
+                        <span class="icon" style="color: var(--color-cuarto);"><i class="fas fa-chart-bar"></i></span>
+                        <span>Reportes de Reservas</span>
+                    </span>
+                </h1>
+                <p class="subtitle">Análisis de solicitudes y uso de equipos.</p>
+            </div>
+
+            <!-- Filtros y Descarga -->
+            <div class="box">
+                <form method="GET" action="{% url 'ver_reportes' %}">
+                    <div class="level">
+                        <div class="level-left">
+                            <div class="field is-grouped">
+                                <p class="control">
+                                    <label class="label is-small">Mes</label>
+                                    <div class="select">
+                                        <select name="mes">
+                                            {% for mes in meses %}
+                                            <option value="{{ mes.num }}" {% if mes.num == mes_filtro %}selected{% endif %}>
+                                                {{ mes.nombre }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </p>
+                                <p class="control">
+                                    <label class="label is-small">Año</label>
+                                    <div class="select">
+                                        <select name="anio">
+                                            {% for anio in anios %}
+                                            <option value="{{ anio }}" {% if anio == anio_filtro %}selected{% endif %}>
+                                                {{ anio }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </p>
+                                <p class="control">
+                                    <label class="label is-small">&nbsp;</label>
+                                    <button type="submit" class="button is-info">
+                                        <span class="icon"><i class="fas fa-filter"></i></span>
+                                        <span>Filtrar</span>
+                                    </button>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="level-right">
+                            <p class="control">
+                                <label class="label is-small">&nbsp;</label>
+                                <!-- Enlace que pasa los filtros actuales a la vista de descarga -->
+                                <a href="{% url 'descargar_reporte_excel' %}?mes={{ mes_filtro }}&anio={{ anio_filtro }}" class="button is-success">
+                                    <span class="icon"><i class="fas fa-file-excel"></i></span>
+                                    <span>Descargar Excel</span>
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Estadísticas del Mes -->
+            <div class="block">
+                <h3 class="title is-4 has-text-dark">Resumen de {{ mes_nombre }} {{ anio_filtro }}</h3>
+            </div>
+            
+            <div class="columns is-multiline">
+                <div class="column is-one-quarter">
+                    <div class="box has-background-link-light">
+                        <p class="heading">Total de Reservas</p>
+                        <p class="title has-text-link">{{ total_reservas }}</p>
+                    </div>
+                </div>
+                <div class="column is-one-quarter">
+                    <div class="box has-background-success-light">
+                        <p class="heading">Aprobadas</p>
+                        <p class="title has-text-success">{{ reservas_aprobadas }}</p>
+                    </div>
+                </div>
+                <div class="column is-one-quarter">
+                    <div class="box has-background-warning-light">
+                        <p class="heading">Pendientes</p>
+                        <p class="title has-text-warning">{{ reservas_pendientes }}</p>
+                    </div>
+                </div>
+                <div class="column is-one-quarter">
+                    <div class="box has-background-danger-light">
+                        <p class="heading">Rechazadas</p>
+                        <p class="title has-text-danger">{{ reservas_rechazadas }}</p>
+                    </div>
+                </div>
+                <div class="column is-one-quarter">
+                    <div class="box has-background-info-light">
+                        <p class="heading">Equipos Solicitados</p>
+                        <p class="title has-text-info">{{ total_equipos_solicitados }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráficos (Tablas) -->
+            <div class="columns">
+                <!-- Reservas por Carrera -->
+                <div class="column is-half">
+                    <div class="box">
+                        <h3 class="title is-5">Reservas por Carrera</h3>
+                        <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+                            <table class="table is-fullwidth is-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Carrera</th>
+                                        <th class="has-text-centered">Cantidad</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in reservas_por_carrera %}
+                                    <tr>
+                                        <td>{{ item.id_carrera__nom_carrera }}</td>
+                                        <td class="has-text-centered">{{ item.cantidad }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="2" class="has-text-centered">Sin datos</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <!-- Top Docentes -->
+                <div class="column is-half">
+                    <div class="box">
+                        <h3 class="title is-5">Top Docentes (por # de reservas)</h3>
+                        <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+                            <table class="table is-fullwidth is-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Docente</th>
+                                        <th class="has-text-centered">Cantidad</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in reservas_por_docente %}
+                                    <tr>
+                                        <td>{{ item.id_usuario__nom_completo }}</td>
+                                        <td class="has-text-centered">{{ item.cantidad }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="2" class="has-text-centered">Sin datos</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detalle de Reservas del Mes -->
+            <div class="box">
+                <h3 class="title is-5">Detalle de Reservas ({{ mes_nombre }} {{ anio_filtro }})</h3>
+                <div class="table-container">
+                    <table class="table is-fullwidth is-striped is-hoverable">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Horario</th>
+                                <th>Docente</th>
+                                <th>Asignatura</th>
+                                <th>Ubicación</th>
+                                <th class="has-text-centered">Cant.</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reserva in reservas_mes %}
+                            <tr>
+                                <td>{{ reserva.fecha_uso|date:"d/m/Y" }}</td>
+                                <td>{{ reserva.hora_inicio|time:"H:i" }} - {{ reserva.hora_fin|time:"H:i" }}</td>
+                                <td>{{ reserva.id_usuario.nom_completo }}</td>
+                                <td>{{ reserva.id_asignatura.nom_asignatura }}</td>
+                                <td>{{ reserva.id_aula.id_bloque.nom_bloque }} / {{ reserva.id_aula.nom_aula }}</td>
+                                <td class="has-text-centered">
+                                    <span class="tag is-info">{{ reserva.cant_solicitada }}</span>
+                                </td>
+                                <td>
+                                    {% if reserva.estado_reserva == 'Aprobada' %}
+                                    <span class="tag is-success">{{ reserva.estado_reserva }}</span>
+                                    {% elif reserva.estado_reserva == 'Pendiente' %}
+                                    <span class="tag is-warning">{{ reserva.estado_reserva }}</span>
+                                    {% elif reserva.estado_reserva == 'Rechazada' %}
+                                    <span class="tag is-danger">{{ reserva.estado_reserva }}</span>
+                                    {% else %}
+                                    <span class="tag is-light">{{ reserva.estado_reserva }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="has-text-centered">
+                                    <p class="has-text-grey-light p-4">No se encontraron reservas para este período.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</body>
+</html>
