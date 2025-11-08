@@ -163,15 +163,14 @@
     <!-- NUEVO: Modal de Recuperación de Datos                  -->
     <!-- ====================================================== -->
     <div id="modal-recuperar" class="modal">
-        <div class="modal-background"></div> <!-- Tu script.js se encargará de este -->
+        <div class="modal-background"></div> 
         <div class="modal-card">
             <header class="modal-card-head">
                 <p class="modal-card-title">Recuperar datos de cuenta</p>
-                <button class="delete" aria-label="close"></button> <!-- Tu script.js se encargará de este -->
+                <button class="delete" aria-label="close"></button> 
             </header>
             
-            <!-- Este formulario debe apuntar a una URL en tu urls.py -->
-            <!-- NOTA: 'recuperar_datos' es la URL que AÚN DEBES AÑADIR a tu urls.py -->
+            
             <form id="recuperar-form" method="POST" action="{% url 'recuperar_datos' %}"> 
                 {% csrf_token %}
                 <section class="modal-card-body">

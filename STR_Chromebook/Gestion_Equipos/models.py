@@ -68,6 +68,14 @@ class Reserva(models.Model):
     motivo_rechazo = models.TextField(db_column='Motivo_Rechazo', blank=True, null=True,
                                       help_text='Motivo por el cual se rechazó la reserva')
     
+    # Campos para gestión de entrega/devolución
+    observaciones = models.TextField(db_column='Observaciones', blank=True, null=True,
+                                    help_text='Observaciones durante el préstamo')
+    fecha_entrega = models.DateTimeField(db_column='Fecha_Entrega', blank=True, null=True,
+                                        help_text='Fecha y hora de entrega de equipos')
+    fecha_devolucion = models.DateTimeField(db_column='Fecha_Devolucion', blank=True, null=True,
+                                           help_text='Fecha y hora de devolución de equipos')
+    
     # Relaciones
     id_usuario = models.ForeignKey(
         Usuario,
@@ -97,6 +105,67 @@ class Reserva(models.Model):
     
     def __str__(self):
         return f"Reserva {self.id_reserva} - {self.id_usuario.nom_completo} - {self.fecha_uso}"
+
+
+class SupervisorReserva(models.Model):
+    """Tabla: Tb_SUPERVISOR_RESERVA - Supervisores asignados a una reserva"""
+    id_supervisor_reserva = models.AutoField(primary_key=True, db_column='ID_SupervisorReserva')
+    
+    # Relaciones
+    id_reserva = models.ForeignKey(
+        Reserva,
+        on_delete=models.CASCADE,
+        db_column='ID_Reserva',
+        related_name='supervisores'
+    )
+    id_supervisor = models.ForeignKey(
+        Usuario,
+        on_delete=models.CASCADE,
+        db_column='ID_Supervisor',
+        limit_choices_to={'id_tipo_usuario__nom_rol': 'Supervisor'}
+    )
+    
+    class Meta:
+        db_table = 'Tb_SUPERVISOR_RESERVA'
+        verbose_name = 'Supervisor de Reserva'
+        verbose_name_plural = 'Supervisores de Reserva'
+        unique_together = ('id_reserva', 'id_supervisor')
+    
+    def __str__(self):
+        return f"{self.id_supervisor.nom_completo} - Reserva #{self.id_reserva.id_reserva}"
+
+
+class EvidenciaReserva(models.Model):
+    """Tabla: Tb_EVIDENCIA_RESERVA - Evidencias fotográficas de la reserva"""
+    TIPO_EVIDENCIA_CHOICES = [
+        ('uso', 'Uso de Equipos'),
+        ('devolucion', 'Devolución de Equipos'),
+    ]
+    
+    id_evidencia = models.AutoField(primary_key=True, db_column='ID_Evidencia')
+    tipo_evidencia = models.CharField(max_length=20, choices=TIPO_EVIDENCIA_CHOICES, 
+                                     db_column='Tipo_Evidencia')
+    foto = models.ImageField(upload_to='evidencias/', db_column='Foto',
+                            help_text='Fotografía de evidencia')
+    descripcion = models.TextField(db_column='Descripcion', blank=True, null=True,
+                                   help_text='Descripción de la evidencia')
+    fecha_subida = models.DateTimeField(auto_now_add=True, db_column='Fecha_Subida')
+    
+    # Relación
+    id_reserva = models.ForeignKey(
+        Reserva,
+        on_delete=models.CASCADE,
+        db_column='ID_Reserva',
+        related_name='evidencias'
+    )
+    
+    class Meta:
+        db_table = 'Tb_EVIDENCIA_RESERVA'
+        verbose_name = 'Evidencia de Reserva'
+        verbose_name_plural = 'Evidencias de Reservas'
+    
+    def __str__(self):
+        return f"Evidencia {self.id_evidencia} - Reserva #{self.id_reserva.id_reserva}"
 
 
 class AsignacionEquipo(models.Model):

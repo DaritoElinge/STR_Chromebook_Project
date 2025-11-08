@@ -24,7 +24,7 @@
             <div class="navbar-end">
                 <div class="navbar-item">
                     <span class="icon-text has-text-dark">
-                        <span class="icon"><i class="fas fa-user-gear"></i></span>
+                        <span class="icon"><i class="fas fa-user-shield"></i></span>
                         <span><strong>{{ usuario.nom_completo }}</strong></span>
                     </span>
                 </div>
@@ -150,7 +150,7 @@
                 </h3>
                 <div class="columns">
                     <div class="column">
-                        <a href="#" class="button is-warning is-fullwidth is-medium">
+                        <a href="{% url 'gestionar_reservas_list' %}" class="button is-warning is-fullwidth is-medium">
                             <span class="icon"><i class="fas fa-clipboard-list"></i></span>
                             <span>Gestionar Reservas</span>
                             {% if total_pendientes > 0 %}
@@ -159,13 +159,13 @@
                         </a>
                     </div>
                     <div class="column">
-                        <a href="#" class="button is-info is-fullwidth is-medium">
+                        <a href="{% url 'gestionar_equipos' %}" class="button is-info is-fullwidth is-medium">
                             <span class="icon"><i class="fas fa-laptop"></i></span>
                             <span>Gestionar Equipos</span>
                         </a>
                     </div>
                     <div class="column">
-                        <a href="#" class="button is-link is-fullwidth is-medium">
+                        <a href="{% url 'ver_reportes' %}" class="button is-link is-fullwidth is-medium">
                             <span class="icon"><i class="fas fa-chart-bar"></i></span>
                             <span>Ver Reportes</span>
                         </a>
@@ -393,6 +393,152 @@
         </div>
     </div>
 
+    <!-- Modal de Detalle de Reserva -->
+    <div class="modal" id="modal-detalle">
+        <div class="modal-background" onclick="cerrarModalDetalle()"></div>
+        <div class="modal-card" style="width: 800px;">
+            <header class="modal-card-head" style="background-color: var(--color-primero);">
+                <p class="modal-card-title has-text-white">
+                    <span class="icon"><i class="fas fa-info-circle"></i></span>
+                    <span>Detalle de Reserva <span id="detalle-id"></span></span>
+                </p>
+                <button class="delete" aria-label="close" onclick="cerrarModalDetalle()"></button>
+            </header>
+            <section class="modal-card-body">
+                <div id="detalle-loading" class="has-text-centered" style="padding: 2rem;">
+                    <span class="icon is-large">
+                        <i class="fas fa-spinner fa-pulse fa-2x"></i>
+                    </span>
+                    <p class="mt-3">Cargando información...</p>
+                </div>
+                
+                <div id="detalle-contenido" style="display: none;">
+                    <!-- Estado -->
+                    <div class="box has-background-light mb-4">
+                        <div class="level">
+                            <div class="level-left">
+                                <div>
+                                    <p class="heading">Estado de la Reserva</p>
+                                    <p class="title is-5" id="detalle-estado"></p>
+                                </div>
+                            </div>
+                            <div class="level-right">
+                                <span class="icon is-large" id="detalle-estado-icon"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información en columnas -->
+                    <div class="columns">
+                        <!-- Columna Izquierda -->
+                        <div class="column">
+                            <h3 class="title is-6 has-text-primary">
+                                <span class="icon"><i class="fas fa-calendar-alt"></i></span>
+                                Información de la Reserva
+                            </h3>
+                            
+                            <table class="table is-fullwidth">
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Fecha de uso:</strong></td>
+                                        <td id="detalle-fecha"></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Horario:</strong></td>
+                                        <td id="detalle-horario"></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Cantidad solicitada:</strong></td>
+                                        <td id="detalle-cantidad"></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Responsable:</strong></td>
+                                        <td id="detalle-responsable"></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Teléfono contacto:</strong></td>
+                                        <td id="detalle-telefono-contacto"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Columna Derecha -->
+                        <div class="column">
+                            <h3 class="title is-6 has-text-primary">
+                                <span class="icon"><i class="fas fa-graduation-cap"></i></span>
+                                Información Académica
+                            </h3>
+                            
+                            <table class="table is-fullwidth">
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Docente:</strong></td>
+                                        <td id="detalle-docente"></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Email:</strong></td>
+                                        <td id="detalle-email"></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Teléfono:</strong></td>
+                                        <td id="detalle-telefono"></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Facultad:</strong></td>
+                                        <td id="detalle-facultad"></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Carrera:</strong></td>
+                                        <td id="detalle-carrera"></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Asignatura:</strong></td>
+                                        <td id="detalle-asignatura"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Ubicación -->
+                    <h3 class="title is-6 has-text-primary mt-4">
+                        <span class="icon"><i class="fas fa-map-marker-alt"></i></span>
+                        Ubicación
+                    </h3>
+                    <div class="box has-background-light">
+                        <div class="columns">
+                            <div class="column">
+                                <p class="heading">Bloque</p>
+                                <p class="title is-5" id="detalle-bloque"></p>
+                            </div>
+                            <div class="column">
+                                <p class="heading">Aula</p>
+                                <p class="title is-5" id="detalle-aula"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Motivo de rechazo (solo si está rechazada) -->
+                    <div id="detalle-motivo-rechazo-container" style="display: none;">
+                        <h3 class="title is-6 has-text-danger mt-4">
+                            <span class="icon"><i class="fas fa-exclamation-triangle"></i></span>
+                            Motivo de Rechazo
+                        </h3>
+                        <div class="notification is-danger is-light">
+                            <p id="detalle-motivo-rechazo"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="detalle-error" class="notification is-danger" style="display: none;"></div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-light" onclick="cerrarModalDetalle()">Cerrar</button>
+            </footer>
+        </div>
+    </div>
+
     <!-- JavaScript -->
     <script>
         // Variables globales
@@ -489,9 +635,85 @@
             });
         }
 
-        // Ver detalle (placeholder)
+        // Ver detalle
         function verDetalle(reservaId) {
-            alert(`Ver detalle de reserva #${reservaId} - Funcionalidad por implementar`);
+            // Mostrar modal
+            document.getElementById('modal-detalle').classList.add('is-active');
+            document.getElementById('detalle-id').textContent = `#${reservaId}`;
+            document.getElementById('detalle-loading').style.display = 'block';
+            document.getElementById('detalle-contenido').style.display = 'none';
+            document.getElementById('detalle-error').style.display = 'none';
+
+            // Cargar datos
+            fetch(`/reserva/${reservaId}/detalle/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const r = data.reserva;
+
+                        // Estado con icono y color
+                        let estadoHTML = '';
+                        let iconoHTML = '';
+                        
+                        if (r.estado === 'Pendiente') {
+                            estadoHTML = '<span class="tag is-warning is-large">⏳ Pendiente</span>';
+                            iconoHTML = '<i class="fas fa-clock fa-3x has-text-warning"></i>';
+                        } else if (r.estado === 'Aprobada') {
+                            estadoHTML = '<span class="tag is-success is-large">✅ Aprobada</span>';
+                            iconoHTML = '<i class="fas fa-check-circle fa-3x has-text-success"></i>';
+                        } else if (r.estado === 'Rechazada') {
+                            estadoHTML = '<span class="tag is-danger is-large">❌ Rechazada</span>';
+                            iconoHTML = '<i class="fas fa-times-circle fa-3x has-text-danger"></i>';
+                        }
+
+                        document.getElementById('detalle-estado').innerHTML = estadoHTML;
+                        document.getElementById('detalle-estado-icon').innerHTML = iconoHTML;
+
+                        // Información de la reserva
+                        document.getElementById('detalle-fecha').textContent = r.fecha_uso;
+                        document.getElementById('detalle-horario').textContent = `${r.hora_inicio} - ${r.hora_fin}`;
+                        document.getElementById('detalle-cantidad').innerHTML = `<span class="tag is-info is-medium">${r.cant_solicitada} Chromebooks</span>`;
+                        document.getElementById('detalle-responsable').textContent = r.responsable_entrega;
+                        document.getElementById('detalle-telefono-contacto').textContent = r.telefono_contacto;
+
+                        // Información académica
+                        document.getElementById('detalle-docente').textContent = r.docente.nombre;
+                        document.getElementById('detalle-email').innerHTML = `<a href="mailto:${r.docente.email}">${r.docente.email}</a>`;
+                        document.getElementById('detalle-telefono').textContent = r.docente.telefono;
+                        document.getElementById('detalle-facultad').textContent = r.facultad;
+                        document.getElementById('detalle-carrera').textContent = r.carrera;
+                        document.getElementById('detalle-asignatura').textContent = r.asignatura;
+
+                        // Ubicación
+                        document.getElementById('detalle-bloque').textContent = r.bloque;
+                        document.getElementById('detalle-aula').textContent = r.aula;
+
+                        // Motivo de rechazo (solo si está rechazada)
+                        if (r.estado === 'Rechazada' && r.motivo_rechazo) {
+                            document.getElementById('detalle-motivo-rechazo').textContent = r.motivo_rechazo;
+                            document.getElementById('detalle-motivo-rechazo-container').style.display = 'block';
+                        } else {
+                            document.getElementById('detalle-motivo-rechazo-container').style.display = 'none';
+                        }
+
+                        // Mostrar contenido
+                        document.getElementById('detalle-loading').style.display = 'none';
+                        document.getElementById('detalle-contenido').style.display = 'block';
+                    } else {
+                        throw new Error(data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('detalle-loading').style.display = 'none';
+                    document.getElementById('detalle-error').textContent = 'Error al cargar los detalles: ' + error.message;
+                    document.getElementById('detalle-error').style.display = 'block';
+                });
+        }
+
+        // Cerrar modal de detalle
+        function cerrarModalDetalle() {
+            document.getElementById('modal-detalle').classList.remove('is-active');
         }
 
         // Obtener cookie CSRF

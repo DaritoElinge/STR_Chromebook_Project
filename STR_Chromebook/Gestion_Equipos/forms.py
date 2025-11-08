@@ -1,5 +1,5 @@
 from django import forms
-from .models import Reserva
+from .models import Reserva, EvidenciaReserva
 from core.models import Asignatura, Carrera, Aula, Bloque
 from datetime import time
 
@@ -135,3 +135,41 @@ class ReservaForm(forms.ModelForm):
                 raise forms.ValidationError('La hora de fin debe ser posterior a la hora de inicio.')
         
         return cleaned_data
+    
+# ======================================================
+# --- ¡NUEVO! FORMULARIO PARA GESTIÓN DE RESERVAS ---
+# ======================================================
+
+class EvidenciaReservaForm(forms.ModelForm):
+    """
+    Formulario para subir fotos de evidencia (uso y devolución).
+    Este formulario se usará en la vista 'gestionar_reserva_detalle'.
+    """
+    tipo_evidencia = forms.ChoiceField(
+        choices=EvidenciaReserva.TIPO_EVIDENCIA_CHOICES,
+        widget=forms.Select(attrs={'class': 'select is-fullwidth'}),
+        label="Tipo de Evidencia"
+    )
+    
+    foto = forms.ImageField(
+        widget=forms.FileInput(attrs={
+            'class': 'file-input', 
+            'id': 'id_foto_evidencia'
+        }),
+        label="Archivo de Foto",
+        required=True
+    )
+    
+    descripcion = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'textarea', 
+            'rows': 3,
+            'placeholder': 'Descripción breve de la foto (ej: equipos en el aula)...'
+        }),
+        label="Descripción",
+        required=False # La descripción es opcional
+    )
+
+    class Meta:
+        model = EvidenciaReserva
+        fields = ['tipo_evidencia', 'foto', 'descripcion']

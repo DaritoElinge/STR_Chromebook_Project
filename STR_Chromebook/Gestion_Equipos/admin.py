@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import EstadoEquipo, Equipo, Reserva, AsignacionEquipo
+from .models import EstadoEquipo, Equipo, Reserva, AsignacionEquipo, SupervisorReserva, EvidenciaReserva
 
 # ==================== EQUIPOS ====================
 
@@ -76,3 +76,35 @@ class AsignacionEquipoAdmin(admin.ModelAdmin):
     def get_equipo(self, obj):
         return f"{obj.id_equipo.nom_equipo} - {obj.id_equipo.num_serie}"
     get_equipo.short_description = 'Equipo'
+
+# ======================================================
+# --- ¡NUEVO! REGISTROS DE GESTIÓN DE RESERVAS ---
+# ======================================================
+
+@admin.register(SupervisorReserva)
+class SupervisorReservaAdmin(admin.ModelAdmin):
+    """Admin para el modelo que asigna Supervisores a Reservas."""
+    list_display = ('id_supervisor_reserva', 'get_reserva_info', 'get_supervisor_nombre')
+    search_fields = ('id_reserva__id_usuario__nom_completo', 'id_supervisor__nom_completo')
+    list_filter = ('id_supervisor',)
+    
+    @admin.display(description='Reserva')
+    def get_reserva_info(self, obj):
+        return f"#{obj.id_reserva.id_reserva} ({obj.id_reserva.fecha_uso})"
+
+    @admin.display(description='Supervisor')
+    def get_supervisor_nombre(self, obj):
+        return obj.id_supervisor.nom_completo
+
+
+@admin.register(EvidenciaReserva)
+class EvidenciaReservaAdmin(admin.ModelAdmin):
+    """Admin para las fotos de Evidencia de las Reservas."""
+    list_display = ('id_evidencia', 'id_reserva', 'tipo_evidencia', 'fecha_subida')
+    list_filter = ('tipo_evidencia', 'fecha_subida')
+    search_fields = ('id_reserva__id_usuario__nom_completo', 'descripcion')
+    readonly_fields = ('fecha_subida',)
+    
+    def get_reserva(self, obj):
+        return f"Reserva #{obj.id_reserva.id_reserva}"
+    get_reserva.short_description = 'Reserva'

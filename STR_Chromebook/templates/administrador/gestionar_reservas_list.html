@@ -1,0 +1,164 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Reservas</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar" style="background-color: var(--color-cuarto) !important;">
+        <div class="navbar-brand">
+            <a class="navbar-item" href="{% url 'dashboard_administrador' %}">
+                <img src="{% static 'img/icon_booking.png' %}" alt="Logo" style="max-height: 40px;">
+            </a>
+            <a class="navbar-item">
+                <strong class="has-text-dark">Gestionar Reservas</strong>
+            </a>
+        </div>
+        <div class="navbar-menu">
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <span class="icon-text has-text-dark">
+                        <span class="icon"><i class="fas fa-user-shield"></i></span>
+                        <span><strong>{{ usuario.nom_completo }}</strong></span>
+                    </span>
+                </div>
+                <div class="navbar-item">
+                    <a href="{% url 'dashboard_administrador' %}" class="button is-light is-small">
+                        <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                        <span>Volver al Dashboard</span>
+                    </a>
+                </div>
+                <div class="navbar-item">
+                    <a href="{% url 'logout' %}" class="button is-danger is-light is-small">
+                        <span class="icon"><i class="fas fa-sign-out-alt"></i></span>
+                        <span>Cerrar Sesión</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenido -->
+    <section class="section">
+        <div class="container">
+            <!-- Título -->
+            <div class="block">
+                <h1 class="title is-3 has-text-dark">
+                    <span class="icon-text">
+                        <span class="icon" style="color: var(--color-primero);"><i class="fas fa-clipboard-list"></i></span>
+                        <span>Panel de Gestión de Reservas</span>
+                    </span>
+                </h1>
+                <p class="subtitle">Asigna equipos, supervisores y registra evidencias.</p>
+            </div>
+
+            <!-- Filtros -->
+            <div class="box">
+                <form method="GET" action="{% url 'gestionar_reservas_list' %}">
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">Filtrar por</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control is-expanded">
+                                    <div class="select is-fullwidth">
+                                        <select name="estado">
+                                            <option value="">Todos los Estados</option>
+                                            <option value="Pendiente" {% if estado_filtro == 'Pendiente' %}selected{% endif %}>Pendiente</option>
+                                            <option value="Aprobada" {% if estado_filtro == 'Aprobada' %}selected{% endif %}>Aprobada</option>
+                                            <option value="Rechazada" {% if estado_filtro == 'Rechazada' %}selected{% endif %}>Rechazada</option>
+                                            <!-- Puedes añadir más estados si los tienes -->
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="control">
+                                    <button type="submit" class="button is-info">
+                                        <span class="icon"><i class="fas fa-filter"></i></span>
+                                        <span>Filtrar</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Tabla de Reservas -->
+            <div class="box">
+                <div class="table-container">
+                    <table class="table is-fullwidth is-striped is-hoverable">
+                        <thead>
+                            <tr>
+                                <th>Fecha de Uso</th>
+                                <th>Horario</th>
+                                <th>Docente</th>
+                                <th>Asignatura</th>
+                                <th>Ubicación</th>
+                                <th class="has-text-centered">Equipos (Asig/Sol)</th>
+                                <th>Estado</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reserva in reservas %}
+                            <tr>
+                                <td><strong>{{ reserva.fecha_uso|date:"d/m/Y" }}</strong></td>
+                                <td>{{ reserva.hora_inicio|time:"H:i" }} - {{ reserva.hora_fin|time:"H:i" }}</td>
+                                <td>{{ reserva.id_usuario.nom_completo }}</td>
+                                <td>{{ reserva.id_asignatura.nom_asignatura }}</td>
+                                <td>{{ reserva.id_aula.id_bloque.nom_bloque }} / {{ reserva.id_aula.nom_aula }}</td>
+                                <td class="has-text-centered">
+                                    <!-- Esto usa el 'equipos_asignados_count' que calculamos en la vista -->
+                                    <span class="tag is-dark is-medium">
+                                        {{ reserva.equipos_asignados_count }} / {{ reserva.cant_solicitada }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <!-- Colores de estado -->
+                                    {% if reserva.estado_reserva == 'Aprobada' %}
+                                    <span class="tag is-success">{{ reserva.estado_reserva }}</span>
+                                    {% elif reserva.estado_reserva == 'Pendiente' %}
+                                    <span class="tag is-warning">{{ reserva.estado_reserva }}</span>
+                                    {% elif reserva.estado_reserva == 'Rechazada' %}
+                                    <span class="tag is-danger">{{ reserva.estado_reserva }}</span>
+                                    {% else %}
+                                    <span class="tag is-light">{{ reserva.estado_reserva }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <!-- 
+                                        Este es el enlace CLAVE. 
+                                        Apunta a 'gestionar_reserva_detalle' (sin namespace)
+                                        y le pasa el ID de la reserva.
+                                    -->
+                                    <a href="{% url 'gestionar_reserva_detalle' reserva.id_reserva %}" class="button is-link is-small">
+                                        <span class="icon"><i class="fas fa-edit"></i></span>
+                                        <span>Gestionar</span>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="8" class="has-text-centered">
+                                    <p class="has-text-grey-light p-4">No se encontraron reservas que coincidan con los filtros.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</body>
+</html>
