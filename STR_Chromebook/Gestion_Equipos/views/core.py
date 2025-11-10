@@ -271,7 +271,7 @@ def gestionar_equipos(request):
     total_equipos = Equipo.objects.count()
     equipos_disponibles = Equipo.objects.filter(id_estado_equipo__nom_estado='Disponible').count()
     equipos_en_uso = Equipo.objects.filter(id_estado_equipo__nom_estado='En uso').count()
-    equipos_mantenimiento = Equipo.objects.filter(id_estado_equipo__nom_estado='Mantenimiento').count()
+    equipos_mantenimiento = Equipo.objects.filter(id_estado_equipo__nom_estado__iexact='En Mantenimiento').count()
     
     context = {
         'usuario': usuario,

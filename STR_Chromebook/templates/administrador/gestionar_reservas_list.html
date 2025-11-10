@@ -24,7 +24,7 @@
             <div class="navbar-end">
                 <div class="navbar-item">
                     <span class="icon-text has-text-dark">
-                        <span class="icon"><i class="fas fa-user-shield"></i></span>
+                        <span class="icon"><i class="fas fa-user-gear"></i></span>
                         <span><strong>{{ usuario.nom_completo }}</strong></span>
                     </span>
                 </div>
@@ -74,7 +74,7 @@
                                             <option value="Pendiente" {% if estado_filtro == 'Pendiente' %}selected{% endif %}>Pendiente</option>
                                             <option value="Aprobada" {% if estado_filtro == 'Aprobada' %}selected{% endif %}>Aprobada</option>
                                             <option value="Rechazada" {% if estado_filtro == 'Rechazada' %}selected{% endif %}>Rechazada</option>
-                                            <!-- Puedes añadir más estados si los tienes -->
+                                            <option value="Finalizada" {% if estado_filtro == 'Finalizada' %}selected{% endif %}>Finalizada</option>
                                         </select>
                                     </div>
                                 </div>

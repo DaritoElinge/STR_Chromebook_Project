@@ -152,7 +152,7 @@ def dashboard_administrador(request):
     total_reservas_pendientes = Reserva.objects.filter(estado_reserva='Pendiente').count()
     total_equipos_disponibles = Equipo.objects.filter(id_estado_equipo__nom_estado='Disponible').count()
     total_equipos_en_uso = Equipo.objects.filter(id_estado_equipo__nom_estado='En uso').count()
-    total_equipos_mantenimiento = Equipo.objects.filter(id_estado_equipo__nom_estado='Mantenimiento').count()
+    total_equipos_mantenimiento = Equipo.objects.filter(id_estado_equipo__nom_estado__iexact='En Mantenimiento').count()
     
     # Reservas pendientes (últimas 10)
     reservas_pendientes = Reserva.objects.filter(

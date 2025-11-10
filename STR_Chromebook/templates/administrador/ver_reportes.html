@@ -10,21 +10,21 @@
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
 <body>
-    <!-- Navbar (Copiada del dashboard) -->
+    <!-- Navbar -->
     <nav class="navbar" style="background-color: var(--color-cuarto) !important;">
         <div class="navbar-brand">
             <a class="navbar-item" href="{% url 'dashboard_administrador' %}">
                 <img src="{% static 'img/icon_booking.png' %}" alt="Logo" style="max-height: 40px;">
             </a>
             <a class="navbar-item">
-                <strong class="has-text-dark">Ver Reportes</strong> <!-- Título de la página -->
+                <strong class="has-text-dark">Ver Reportes</strong>
             </a>
         </div>
         <div class="navbar-menu">
             <div class="navbar-end">
                 <div class="navbar-item">
                     <span class="icon-text has-text-dark">
-                        <span class="icon"><i class="fas fa-user-shield"></i></span>
+                        <span class="icon"><i class="fas fa-user-gear"></i></span>
                         <span><strong>{{ usuario.nom_completo }}</strong></span>
                     </span>
                 </div>
@@ -112,7 +112,6 @@
                         <div class="level-right">
                             <p class="control">
                                 <label class="label is-small">&nbsp;</label>
-                                <!-- Enlace que pasa los filtros actuales a la vista de descarga -->
                                 <a href="{% url 'descargar_reporte_excel' %}?mes={{ mes_filtro }}&anio={{ anio_filtro }}" class="button is-success">
                                     <span class="icon"><i class="fas fa-file-excel"></i></span>
                                     <span>Descargar Excel</span>
@@ -162,7 +161,7 @@
             </div>
 
             <!-- Gráficos (Tablas) -->
-            <div class="columns">
+            <div class="columns is-multiline">
                 <!-- Reservas por Carrera -->
                 <div class="column is-half">
                     <div class="box">
@@ -219,6 +218,38 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Racks más usados -->
+                <div class="column is-half">
+                    <div class="box">
+                        <h3 class="title is-5">Racks más Usados (en reservas finalizadas)</h3>
+                        <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+                            <table class="table is-fullwidth is-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Rack</th>
+                                        <th>Ubicación</th>
+                                        <th class="has-text-centered"># Equipos Asignados</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in racks_mas_usados %}
+                                    <tr>
+                                        <td><strong>{{ item.id_equipo__id_rack__nom_rack }}</strong></td>
+                                        <td>{{ item.id_equipo__id_rack__ubicacion }}</td>
+                                        <td class="has-text-centered">{{ item.total_equipos }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="has-text-centered">No se asignaron equipos desde Racks este mes.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
             <!-- Detalle de Reservas del Mes -->
@@ -249,12 +280,15 @@
                                     <span class="tag is-info">{{ reserva.cant_solicitada }}</span>
                                 </td>
                                 <td>
+                                    <!-- ¡LÓGICA DE ESTADO ACTUALIZADA! -->
                                     {% if reserva.estado_reserva == 'Aprobada' %}
                                     <span class="tag is-success">{{ reserva.estado_reserva }}</span>
                                     {% elif reserva.estado_reserva == 'Pendiente' %}
                                     <span class="tag is-warning">{{ reserva.estado_reserva }}</span>
                                     {% elif reserva.estado_reserva == 'Rechazada' %}
                                     <span class="tag is-danger">{{ reserva.estado_reserva }}</span>
+                                    {% elif reserva.estado_reserva == 'Finalizada' %}
+                                    <span class="tag is-dark">{{ reserva.estado_reserva }}</span>
                                     {% else %}
                                     <span class="tag is-light">{{ reserva.estado_reserva }}</span>
                                     {% endif %}
