@@ -1,16 +1,18 @@
 # ======================================================
-# VISTAS DEL MÓDULO "GESTIONAR RESERVAS" (ADMIN)
+# VISTAS DE GESTIÓN DE RESERVAS (ADMIN)
+# (Asignar equipos, supervisores, subir evidencia)
 # ======================================================
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
-from django.db.models import Q
+from django.db.models import Count, Q, F
+from django.db import transaction # ¡Importante para las nuevas APIs!
 from datetime import datetime
 import json
 
 # Importar Modelos
-from core.models import Usuario
+from core.models import Usuario, Rack
 from Gestion_Equipos.models import (
     Reserva, Equipo, EstadoEquipo, AsignacionEquipo, 
     SupervisorReserva, EvidenciaReserva
@@ -21,7 +23,7 @@ from Gestion_Equipos.forms import EvidenciaReservaForm
 
 
 # ======================================================
-# VISTAS PRINCIPALES (HTML)
+# VISTAS HTML (PÁGINAS)
 # ======================================================
 
 def gestionar_reservas_list(request):
@@ -43,8 +45,8 @@ def gestionar_reservas_list(request):
     reservas_list = Reserva.objects.select_related(
         'id_usuario', 'id_carrera', 'id_aula', 'id_aula__id_bloque'
     ).prefetch_related(
-        'supervisores', # related_name de SupervisorReserva
-        'asignacionequipo_set' # related_name por defecto
+        'supervisores', 
+        'asignacionequipo_set' # Usamos el related_name por defecto
     ).order_by('-fecha_uso', '-hora_inicio')
 
     if estado_filtro:
@@ -60,14 +62,13 @@ def gestionar_reservas_list(request):
         'estado_filtro': estado_filtro,
     }
     
-    # Plantilla: templates/administrador/gestionar_reservas_list.html
     return render(request, 'administrador/gestionar_reservas_list.html', context)
 
 
 def gestionar_reserva_detalle(request, reserva_id):
     """
     Vista detallada para GESTIONAR una reserva específica.
-    Aquí es donde asignas equipos, supervisores y subes evidencia.
+    Aquí es donde asignas Racks, supervisores y subes evidencia.
     """
     if not request.session.get('usuario_id'):
         messages.error(request, 'Debe iniciar sesión.')
@@ -82,40 +83,50 @@ def gestionar_reserva_detalle(request, reserva_id):
     ), id_reserva=reserva_id)
 
     # --- Manejo de SUBIDA DE EVIDENCIA (FOTO) ---
-    if request.method == 'POST':
-        # El formulario EvidenciaReservaForm se encarga de esto
+    if request.method == 'POST' and 'submit_evidencia' in request.POST:
         form_evidencia = EvidenciaReservaForm(request.POST, request.FILES)
         if form_evidencia.is_valid():
             evidencia = form_evidencia.save(commit=False)
             evidencia.id_reserva = reserva
             evidencia.save()
             messages.success(request, '✅ Evidencia subida correctamente.')
-            # Redirigir para limpiar el POST y evitar reenvíos
             return redirect('gestionar_reserva_detalle', reserva_id=reserva_id)
         else:
             messages.error(request, 'Error al subir la evidencia. Revise el formulario.')
     else:
-        # Crear un formulario vacío para el template (para peticiones GET)
         form_evidencia = EvidenciaReservaForm()
 
     # --- DATOS PARA EL CONTEXTO DE LA VISTA (GET) ---
 
-    # 1. Equipos ya asignados a ESTA reserva
     equipos_asignados = AsignacionEquipo.objects.filter(
         id_reserva=reserva
     ).select_related('id_equipo', 'id_equipo__id_rack')
+    
+    equipos_asignados_count = equipos_asignados.count()
+    equipos_necesarios = reserva.cant_solicitada - equipos_asignados_count
 
-    # 2. Equipos "Disponibles" para ser asignados
-    equipos_disponibles = Equipo.objects.filter(
-        id_estado_equipo__nom_estado='Disponible'
-    ).select_related('id_rack').order_by('id_rack', 'nom_equipo')
+    # 2. Racks "Disponibles" para ser asignados
+    racks_disponibles = Rack.objects.annotate(
+        # 1. Contar equipos cuyo estado es 'Disponible' (ignorando mayúsculas)
+        equipos_disponibles_en_rack=Count('equipo', filter=Q(
+            equipo__id_estado_equipo__nom_estado__iexact='Disponible' 
+        ))
+    ).filter(
+        # 2. Asegurarse de que la cantidad sea suficiente
+        equipos_disponibles_en_rack__gte=equipos_necesarios,
+        
+        # 3. Asegurarse de que el Rack esté 'Disponible' (ignorando mayúsculas)
+        estado_rack__iexact='Disponible' 
+        
+    ).order_by('nom_rack')
 
-    # 3. Supervisores ya asignados (usando tu modelo SupervisorReserva)
+
+    # 3. Supervisores ya asignados
     supervisores_asignados = SupervisorReserva.objects.filter(
         id_reserva=reserva
     ).select_related('id_supervisor')
 
-    # 4. Supervisores "Disponibles" (Usuarios con el rol)
+    # 4. Supervisores "Disponibles"
     supervisores_asignados_ids = [s.id_supervisor_id for s in supervisores_asignados]
     supervisores_disponibles = Usuario.objects.filter(
         id_tipo_usuario__nom_rol='Supervisor'
@@ -123,7 +134,7 @@ def gestionar_reserva_detalle(request, reserva_id):
         id_usuario__in=supervisores_asignados_ids
     ).order_by('nom_completo')
     
-    # 5. Evidencia ya subida para esta reserva
+    # 5. Evidencia ya subida
     evidencias = EvidenciaReserva.objects.filter(
         id_reserva=reserva
     ).order_by('-fecha_subida')
@@ -132,14 +143,15 @@ def gestionar_reserva_detalle(request, reserva_id):
         'usuario': usuario,
         'reserva': reserva,
         'equipos_asignados': equipos_asignados,
-        'equipos_disponibles': equipos_disponibles,
+        'equipos_asignados_count': equipos_asignados_count,
+        'equipos_necesarios': equipos_necesarios,
+        'racks_disponibles': racks_disponibles, 
         'supervisores_asignados': supervisores_asignados,
         'supervisores_disponibles': supervisores_disponibles,
         'evidencias': evidencias,
-        'form_evidencia': form_evidencia, # El formulario para subir fotos
+        'form_evidencia': form_evidencia,
     }
     
-    # Plantilla: templates/administrador/gestionar_reserva_detalle.html
     return render(request, 'administrador/gestionar_reserva_detalle.html', context)
 
 
@@ -147,10 +159,9 @@ def gestionar_reserva_detalle(request, reserva_id):
 # --- APIs (AJAX) - GESTIÓN DE RESERVAS (ADMIN) ---
 # ======================================================
 
-def api_asignar_equipo(request, reserva_id):
+def api_asignar_rack(request, reserva_id):
     """
-    API para asignar un equipo 'Disponible' a una reserva.
-    Cambia el estado del equipo a 'En uso'.
+    API para asignar automáticament 'equipos_necesarios' desde un Rack.
     """
     if request.session.get('usuario_tipo') != 'administrador':
         return JsonResponse({'success': False, 'error': 'Acceso denegado'})
@@ -159,44 +170,81 @@ def api_asignar_equipo(request, reserva_id):
         try:
             reserva = get_object_or_404(Reserva, id_reserva=reserva_id)
             data = json.loads(request.body)
-            equipo_id = data.get('equipo_id')
-            equipo = get_object_or_404(Equipo, id_equipo=equipo_id)
-
-            # Validar que el equipo esté realmente disponible
-            if equipo.id_estado_equipo.nom_estado != 'Disponible':
-                return JsonResponse({'success': False, 'error': 'El equipo no está disponible'})
-
-            # Validar que no se pasen de la cantidad solicitada
-            conteo_actual = AsignacionEquipo.objects.filter(id_reserva=reserva).count()
-            if conteo_actual >= reserva.cant_solicitada:
-                return JsonResponse({'success': False, 'error': f'Ya se asignó la cantidad máxima solicitada ({reserva.cant_solicitada})'})
-
-            # Crear la asignación
-            asignacion, created = AsignacionEquipo.objects.get_or_create(
-                id_reserva=reserva,
-                id_equipo=equipo
-            )
+            rack_id = data.get('rack_id')
             
-            if not created:
-                return JsonResponse({'success': False, 'error': 'Este equipo ya estaba asignado'})
+            if not rack_id:
+                return JsonResponse({'success': False, 'error': 'Debe seleccionar un rack'})
 
-            # Cambiar estado del equipo
-            estado_en_uso = EstadoEquipo.objects.get(nom_estado='En uso')
-            equipo.id_estado_equipo = estado_en_uso
-            equipo.save()
+            rack = get_object_or_404(Rack, id_rack=rack_id)
+
+            equipos_asignados_count = AsignacionEquipo.objects.filter(id_reserva=reserva).count()
+            equipos_necesarios = reserva.cant_solicitada - equipos_asignados_count
+
+            if equipos_necesarios <= 0:
+                return JsonResponse({'success': False, 'error': 'Ya se asignó la cantidad total de equipos solicitados.'})
+
+            # Buscar equipos 'Disponibles' (ignorando mayúsculas)
+            equipos_para_asignar = Equipo.objects.filter(
+                id_rack=rack,
+                id_estado_equipo__nom_estado__iexact='Disponible' 
+            )[:equipos_necesarios]
+
+            if len(equipos_para_asignar) < equipos_necesarios:
+                return JsonResponse({'success': False, 'error': f'El Rack {rack.nom_rack} solo tiene {len(equipos_para_asignar)} equipos disponibles. Se necesitan {equipos_necesarios}.'})
+
+            # Asignar los equipos y cambiar su estado
+            estado_en_uso, _ = EstadoEquipo.objects.get_or_create(nom_estado='En uso')
             
-            # Devolver datos para la UI
-            data = {
-                'success': True,
-                'asignacion': {
-                    'id': asignacion.id_asig_equipo,
-                    'equipo_nombre': equipo.nom_equipo,
-                    'equipo_serie': equipo.num_serie,
-                    'rack': equipo.id_rack.nom_rack if equipo.id_rack else 'N/A'
-                }
-            }
-            return JsonResponse(data)
+            nuevas_asignaciones = []
+            for equipo in equipos_para_asignar:
+                asignacion = AsignacionEquipo(
+                    id_reserva=reserva,
+                    id_equipo=equipo
+                )
+                nuevas_asignaciones.append(asignacion)
+                equipo.id_estado_equipo = estado_en_uso
+            
+            AsignacionEquipo.objects.bulk_create(nuevas_asignaciones)
+            Equipo.objects.bulk_update(equipos_para_asignar, ['id_estado_equipo'])
 
+            messages.success(request, f'✅ {len(nuevas_asignaciones)} equipos asignados exitosamente desde {rack.nom_rack}.')
+            return JsonResponse({'success': True, 'asignados': len(nuevas_asignaciones)})
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+
+@transaction.atomic # Asegura que toda la operación falle o tenga éxito
+def api_desasignar_todos_equipos(request, reserva_id):
+    """
+    API para quitar TODOS los equipos de una reserva y devolverlos a 'Disponible'.
+    """
+    if request.session.get('usuario_tipo') != 'administrador':
+        return JsonResponse({'success': False, 'error': 'Acceso denegado'})
+
+    if request.method == 'POST':
+        try:
+            reserva = get_object_or_404(Reserva, id_reserva=reserva_id)
+            asignaciones = AsignacionEquipo.objects.filter(id_reserva=reserva)
+            
+            if not asignaciones.exists():
+                return JsonResponse({'success': False, 'error': 'No hay equipos asignados para quitar.'})
+
+            estado_disponible, _ = EstadoEquipo.objects.get_or_create(nom_estado='Disponible')
+            
+            # Obtener todos los IDs de equipos antes de borrar las asignaciones
+            equipo_ids = list(asignaciones.values_list('id_equipo_id', flat=True))
+            
+            # Borrar todas las asignaciones de esta reserva
+            asignaciones.delete()
+            
+            # Actualizar todos los equipos correspondientes a 'Disponible'
+            Equipo.objects.filter(id_equipo__in=equipo_ids).update(id_estado_equipo=estado_disponible)
+            
+            messages.info(request, f'♻️ Se quitaron {len(equipo_ids)} equipos de la reserva.')
+            return JsonResponse({'success': True})
+            
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
     return JsonResponse({'success': False, 'error': 'Método no permitido'})
@@ -204,23 +252,20 @@ def api_asignar_equipo(request, reserva_id):
 
 def api_desasignar_equipo(request, asignacion_id):
     """
-    API para quitar un equipo de una reserva y devolverlo a 'Disponible'.
+    API para quitar UN equipo de una reserva y devolverlo a 'Disponible'.
     """
     if request.session.get('usuario_tipo') != 'administrador':
         return JsonResponse({'success': False, 'error': 'Acceso denegado'})
 
     if request.method == 'POST':
         try:
-            # Buscar la asignación específica
             asignacion = get_object_or_404(AsignacionEquipo, id_asig_equipo=asignacion_id)
             equipo = asignacion.id_equipo
             
-            # Devolver el equipo a 'Disponible'
-            estado_disponible = EstadoEquipo.objects.get(nom_estado='Disponible')
+            estado_disponible, _ = EstadoEquipo.objects.get_or_create(nom_estado='Disponible')
             equipo.id_estado_equipo = estado_disponible
             equipo.save()
             
-            # Eliminar la asignación
             asignacion.delete()
             return JsonResponse({'success': True})
             
@@ -231,7 +276,7 @@ def api_desasignar_equipo(request, asignacion_id):
 
 def api_asignar_supervisor(request, reserva_id):
     """
-    API para asignar un supervisor a una reserva (usando tu modelo SupervisorReserva).
+    API para asignar un supervisor a una reserva (usando tu modelo).
     """
     if request.session.get('usuario_tipo') != 'administrador':
         return JsonResponse({'success': False, 'error': 'Acceso denegado'})
@@ -243,11 +288,9 @@ def api_asignar_supervisor(request, reserva_id):
             supervisor_id = data.get('supervisor_id')
             supervisor = get_object_or_404(Usuario, id_usuario=supervisor_id)
 
-            # Validar que el usuario tenga el rol 'Supervisor'
             if supervisor.id_tipo_usuario.nom_rol != 'Supervisor':
                  return JsonResponse({'success': False, 'error': 'Este usuario no es Supervisor'})
 
-            # Crear la asignación
             asignacion, created = SupervisorReserva.objects.get_or_create(
                 id_reserva=reserva,
                 id_supervisor=supervisor
@@ -256,7 +299,6 @@ def api_asignar_supervisor(request, reserva_id):
             if not created:
                 return JsonResponse({'success': False, 'error': 'Supervisor ya asignado'})
 
-            # Devolver datos para la UI
             data = {
                 'success': True,
                 'asignacion': {
@@ -281,7 +323,6 @@ def api_desasignar_supervisor(request, supervisor_reserva_id):
 
     if request.method == 'POST':
         try:
-            # Buscar la asignación específica por su ID único
             asignacion = get_object_or_404(SupervisorReserva, id_supervisor_reserva=supervisor_reserva_id)
             asignacion.delete()
             return JsonResponse({'success': True})
@@ -301,11 +342,9 @@ def api_eliminar_evidencia(request, evidencia_id):
         try:
             evidencia = get_object_or_404(EvidenciaReserva, id_evidencia=evidencia_id)
             
-            # Borrar el archivo de media/evidencias/
             if evidencia.foto:
-                evidencia.foto.delete(save=False) # No guardar el modelo aún
+                evidencia.foto.delete(save=False)
             
-            # Borrar el registro de la BD
             evidencia.delete()
             
             return JsonResponse({'success': True})
@@ -316,7 +355,7 @@ def api_eliminar_evidencia(request, evidencia_id):
 
 def api_actualizar_gestion(request, reserva_id):
     """
-    API para guardar observaciones y timestamps (fecha_entrega, fecha_devolucion).
+    API para guardar observaciones y timestamps de la reserva.
     """
     if request.session.get('usuario_tipo') != 'administrador':
         return JsonResponse({'success': False, 'error': 'Acceso denegado'})
@@ -326,10 +365,8 @@ def api_actualizar_gestion(request, reserva_id):
             reserva = get_object_or_404(Reserva, id_reserva=reserva_id)
             data = json.loads(request.body)
             
-            # Actualizar campos del modelo Reserva
             reserva.observaciones = data.get('observaciones', reserva.observaciones)
             
-            # Convertir string de datetime-local a objeto datetime
             fecha_entrega_str = data.get('fecha_entrega')
             fecha_devolucion_str = data.get('fecha_devolucion')
             
@@ -350,4 +387,51 @@ def api_actualizar_gestion(request, reserva_id):
             
         except Exception as e:
             return JsonResponse({'success': False, 'error': f'Error procesando datos: {str(e)}'})
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+
+# --- ¡NUEVA API PARA FINALIZAR! ---
+@transaction.atomic
+def api_finalizar_reserva(request, reserva_id):
+    """
+    API para marcar una reserva como 'Finalizada' y devolver todos
+    los equipos asignados a 'Disponible'.
+    """
+    if request.session.get('usuario_tipo') != 'administrador':
+        return JsonResponse({'success': False, 'error': 'Acceso denegado'})
+
+    if request.method == 'POST':
+        try:
+            reserva = get_object_or_404(Reserva, id_reserva=reserva_id)
+            
+            # 1. Verificar que la reserva esté 'Aprobada'
+            if reserva.estado_reserva != 'Aprobada':
+                return JsonResponse({'success': False, 'error': f'Solo se pueden finalizar reservas "Aprobadas". Esta reserva está "{reserva.estado_reserva}".'})
+
+            # 2. Encontrar todas las asignaciones y equipos
+            asignaciones = AsignacionEquipo.objects.filter(id_reserva=reserva)
+            equipo_ids = list(asignaciones.values_list('id_equipo_id', flat=True))
+            
+            # 3. Poner todos los equipos como 'Disponible'
+            estado_disponible, _ = EstadoEquipo.objects.get_or_create(nom_estado='Disponible')
+            Equipo.objects.filter(id_equipo__in=equipo_ids).update(id_estado_equipo=estado_disponible)
+            
+            # 4. (Opcional) Borrar las asignaciones, ya que la reserva terminó
+            # asignaciones.delete() 
+            # -> O puedes dejarlas para el historial. Decidimos dejarlas.
+
+            # 5. Marcar la reserva como 'Finalizada'
+            reserva.estado_reserva = 'Finalizada'
+            
+            # (Opcional) Sellar la fecha de devolución si está vacía
+            if not reserva.fecha_devolucion:
+                reserva.fecha_devolucion = datetime.now()
+
+            reserva.save()
+            
+            messages.success(request, f'✅ Reserva #{reserva.id_reserva} marcada como "Finalizada".')
+            return JsonResponse({'success': True, 'redirect_url': request.build_absolute_uri(redirect('gestionar_reservas_list').url)})
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
     return JsonResponse({'success': False, 'error': 'Método no permitido'})

@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-M">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestionar Reserva #{{ reserva.id_reserva }}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
@@ -30,7 +30,6 @@
                     </span>
                 </div>
                 <div class="navbar-item">
-                    <!-- Botón para volver a la lista -->
                     <a href="{% url 'gestionar_reservas_list' %}" class="button is-light is-small">
                         <span class="icon"><i class="fas fa-arrow-left"></i></span>
                         <span>Volver a la Lista</span>
@@ -46,7 +45,7 @@
         </div>
     </nav>
 
-    <!-- Mensajes de Django (para subida de fotos, etc.) -->
+    <!-- Mensajes de Django -->
     {% if messages %}
     <div class="container" style="margin-top: 5.5rem; margin-bottom: -1.5rem;">
         {% for message in messages %}
@@ -73,11 +72,13 @@
                             <strong>Fecha:</strong> {{ reserva.fecha_uso|date:"d/m/Y" }} |
                             <strong>Estado:</strong> 
                             {% if reserva.estado_reserva == 'Aprobada' %}
-                            <span class="tag is-success">{{ reserva.estado_reserva }}</span>
+                                <span class="tag is-success">{{ reserva.estado_reserva }}</span>
                             {% elif reserva.estado_reserva == 'Pendiente' %}
-                            <span class="tag is-warning">{{ reserva.estado_reserva }}</span>
+                                <span class="tag is-warning">{{ reserva.estado_reserva }}</span>
                             {% elif reserva.estado_reserva == 'Rechazada' %}
-                            <span class="tag is-danger">{{ reserva.estado_reserva }}</span>
+                                <span class="tag is-danger">{{ reserva.estado_reserva }}</span>
+                            {% elif reserva.estado_reserva == 'Finalizada' %}
+                                <span class="tag is-dark">{{ reserva.estado_reserva }}</span>
                             {% endif %}
                         </p>
                     </div>
@@ -89,7 +90,7 @@
                     </div>
                     <div class="box has-background-dark has-text-centered ml-2">
                         <p class="heading has-text-white">Equipos Asignados</p>
-                        <p class="title has-text-white" id="conteo-asignados">{{ equipos_asignados|length }}</p>
+                        <p class="title has-text-white" id="conteo-asignados">{{ equipos_asignados_count }}</p>
                     </div>
                 </div>
             </div>
@@ -97,35 +98,72 @@
             <div class="columns">
                 <!-- Columna Izquierda: Asignaciones -->
                 <div class="column is-two-thirds">
-                    <!-- 1. Asignar Equipos -->
+                    
+                    <!-- 1. Asignar por Rack -->
                     <div class="box">
                         <h3 class="title is-5">
-                            <span class="icon"><i class="fas fa-laptop"></i></span>
-                            Asignar Equipos
+                            <span class="icon"><i class="fas fa-tasks"></i></span>
+                            Asignar Equipos por Rack
                         </h3>
-                        <div class="field is-grouped">
-                            <div class="control is-expanded">
-                                <div class="select is-fullwidth">
-                                    <select id="select-equipo-disponible">
-                                        <option value="">Seleccione un equipo disponible...</option>
-                                        {% for equipo in equipos_disponibles %}
-                                        <option value="{{ equipo.id_equipo }}">
-                                            {{ equipo.nom_equipo }} | {{ equipo.num_serie }} | (Rack: {{ equipo.id_rack.nom_rack|default:"N/A" }})
-                                        </option>
-                                        {% endfor %}
-                                    </select>
+
+                        <!-- Solo mostramos la gestión si la reserva está Aprobada -->
+                        {% if reserva.estado_reserva == 'Aprobada' %}
+                            <p class="subtitle is-6">Equipos restantes por asignar: <strong>{{ equipos_necesarios }}</strong></p>
+                            
+                            {% if equipos_necesarios > 0 %}
+                            <div class="field is-grouped">
+                                <div class="control is-expanded">
+                                    <div class="select is-fullwidth">
+                                        <select id="select-rack-disponible">
+                                            <option value="">Seleccione un Rack viable...</option>
+                                            {% for rack in racks_disponibles %}
+                                            <option value="{{ rack.id_rack }}">
+                                                {{ rack.nom_rack }} ({{ rack.ubicacion }}) - [{{ rack.equipos_disponibles_en_rack }} disponibles]
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="control">
+                                    <button class="button is-success" onclick="asignarRack()">
+                                        <span class="icon"><i class="fas fa-plus-circle"></i></span>
+                                        <span>Asignar Rack</span>
+                                    </button>
                                 </div>
                             </div>
-                            <div class="control">
-                                <button class="button is-success" onclick="asignarEquipo()">
-                                    <span class="icon"><i class="fas fa-plus"></i></span>
-                                    <span>Asignar</span>
+                            <div id="error-asignar-rack" class="notification is-danger" style="display: none;"></div>
+                            {% else %}
+                            <div class="notification is-success is-light">
+                                <span class="icon"><i class="fas fa-check-circle"></i></span>
+                                Ya se asignó la cantidad total de equipos solicitados.
+                            </div>
+                            {% endif %}
+                        
+                        {% else %}
+                            <div class="notification is-info is-light">
+                                <span class="icon"><i class="fas fa-info-circle"></i></span>
+                                La asignación de equipos está cerrada. La reserva está <strong>{{ reserva.estado_reserva }}</strong>.
+                            </div>
+                        {% endif %}
+                        <!-- Fin del bloque 'Aprobada' -->
+                        
+                        <hr>
+
+                        <div class="level">
+                            <div class="level-left">
+                                <h4 class="title is-6">Equipos Asignados ({{ equipos_asignados_count }})</h4>
+                            </div>
+                            <div class="level-right">
+                                <!-- Solo mostramos el botón de quitar si está Aprobada y hay equipos -->
+                                {% if reserva.estado_reserva == 'Aprobada' and equipos_asignados_count > 0 %}
+                                <button class="button is-danger is-small" onclick="desasignarTodosLosEquipos()">
+                                    <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                    <span>Quitar Todos</span>
                                 </button>
+                                {% endif %}
                             </div>
                         </div>
-                        <div id="error-asignar-equipo" class="notification is-danger" style="display: none;"></div>
                         
-                        <h4 class="title is-6 mt-4">Equipos Asignados ({{ equipos_asignados|length }})</h4>
                         <div class="table-container" style="max-height: 250px; overflow-y: auto;">
                             <table class="table is-fullwidth is-striped">
                                 <thead>
@@ -143,10 +181,15 @@
                                         <td><code>{{ asignacion.id_equipo.num_serie }}</code></td>
                                         <td>{{ asignacion.id_equipo.id_rack.nom_rack|default:"N/A" }}</td>
                                         <td>
+                                            <!-- Solo permitimos quitar si está Aprobada -->
+                                            {% if reserva.estado_reserva == 'Aprobada' %}
                                             <button class="button is-danger is-small" onclick="desasignarEquipo({{ asignacion.id_asig_equipo }})">
                                                 <span class="icon"><i class="fas fa-times"></i></span>
                                                 <span>Quitar</span>
                                             </button>
+                                            {% else %}
+                                            <span class="tag is-light">N/A</span>
+                                            {% endif %}
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -166,6 +209,9 @@
                             <span class="icon"><i class="fas fa-user-shield"></i></span>
                             Asignar Supervisores
                         </h3>
+                        
+                        <!-- Solo mostramos la gestión si la reserva está Aprobada -->
+                        {% if reserva.estado_reserva == 'Aprobada' %}
                         <div class="field is-grouped">
                             <div class="control is-expanded">
                                 <div class="select is-fullwidth">
@@ -185,6 +231,8 @@
                             </div>
                         </div>
                         <div id="error-asignar-supervisor" class="notification is-danger" style="display: none;"></div>
+                        {% endif %}
+                        <!-- Fin del bloque 'Aprobada' -->
 
                         <h4 class="title is-6 mt-4">Supervisores Asignados</h4>
                         <table class="table is-fullwidth is-striped">
@@ -201,10 +249,15 @@
                                     <td>{{ asignacion.id_supervisor.nom_completo }}</td>
                                     <td>{{ asignacion.id_supervisor.email }}</td>
                                     <td>
+                                        <!-- Solo permitimos quitar si está Aprobada -->
+                                        {% if reserva.estado_reserva == 'Aprobada' %}
                                         <button class="button is-danger is-small" onclick="desasignarSupervisor({{ asignacion.id_supervisor_reserva }})">
                                             <span class="icon"><i class="fas fa-times"></i></span>
                                             <span>Quitar</span>
                                         </button>
+                                        {% else %}
+                                        <span class="tag is-light">N/A</span>
+                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -224,6 +277,8 @@
                             Gestión de Evidencias
                         </h3>
                         
+                        <!-- Solo mostramos la gestión si la reserva está Aprobada -->
+                        {% if reserva.estado_reserva == 'Aprobada' %}
                         <!-- Formulario de subida de fotos -->
                         <form method="POST" enctype="multipart/form-data">
                             {% csrf_token %}
@@ -235,32 +290,46 @@
                                     </div>
                                 </div>
                             </div>
+                            
+                            <!-- CORREGIDO: Campo de FOTO con estilo Bulma -->
                             <div class="field">
                                 <label class="label">{{ form_evidencia.foto.label }}</label>
-                                <div class="control">
-                                    {{ form_evidencia.foto }}
+                                <div class="file has-name is-fullwidth">
+                                    <label class="file-label">
+                                        {{ form_evidencia.foto }}
+                                        <span class="file-cta">
+                                            <span class="file-icon"><i class="fas fa-upload"></i></span>
+                                            <span class="file-label">Seleccionar un archivo…</span>
+                                        </span>
+                                        <span class="file-name">No se ha seleccionado archivo</span>
+                                    </label>
                                 </div>
                             </div>
+                            
                             <div class="field">
                                 <label class="label">{{ form_evidencia.descripcion.label }}</label>
                                 <div class="control">
                                     {{ form_evidencia.descripcion }}
                                 </div>
                             </div>
+                            
                             {% if form_evidencia.errors %}
                             <div class="notification is-danger is-light">
                                 {{ form_evidencia.errors }}
                             </div>
                             {% endif %}
+                            
                             <div class="field">
-                                <button type="submit" class="button is-link">
+                                <button type="submit" name="submit_evidencia" class="button is-link">
                                     <span class="icon"><i class="fas fa-upload"></i></span>
                                     <span>Subir Evidencia</span>
                                 </button>
                             </div>
                         </form>
-                        
                         <hr>
+                        {% endif %}
+                        <!-- Fin del bloque 'Aprobada' -->
+                        
                         <!-- Galería de Evidencias -->
                         <h4 class="title is-6 mt-4">Evidencias Subidas</h4>
                         <div class="evidencia-gallery" id="evidencia-gallery">
@@ -273,9 +342,13 @@
                                     <p class="is-size-7"><strong>Tipo:</strong> {{ evidencia.get_tipo_evidencia_display }}</p>
                                     <p class="is-size-7"><strong>Desc:</strong> {{ evidencia.descripcion|truncatechars:50 }}</p>
                                 </div>
+                                
+                                <!-- Solo permitimos eliminar si está Aprobada -->
+                                {% if reserva.estado_reserva == 'Aprobada' %}
                                 <button class="delete-btn" title="Eliminar" onclick="eliminarEvidencia({{ evidencia.id_evidencia }})">
                                     <i class="fas fa-times"></i>
                                 </button>
+                                {% endif %}
                             </div>
                             {% endfor %}
                             {% if not evidencias %}
@@ -324,6 +397,9 @@
                     <!-- 5. Observaciones y Cierre -->
                     <div class="box">
                         <h3 class="title is-5">Gestión y Cierre</h3>
+                        
+                        <!-- Solo mostramos la gestión si la reserva está Aprobada -->
+                        {% if reserva.estado_reserva == 'Aprobada' %}
                         <div class="field">
                             <label class="label">Observaciones (Uso, Devolución, Anomalías)</label>
                             <div class="control">
@@ -333,7 +409,6 @@
                         <div class="field">
                             <label class="label">Fecha/Hora Entrega de Equipos</label>
                             <div class="control">
-                                <!-- Formato Y-m-d\TH:i es crucial para datetime-local -->
                                 <input id="fecha-entrega" class="input" type="datetime-local" value="{{ reserva.fecha_entrega|date:'Y-m-d\TH:i' }}">
                             </div>
                         </div>
@@ -344,12 +419,49 @@
                             </div>
                         </div>
                         <div id="error-guardar-gestion" class="notification is-danger" style="display: none;"></div>
+                        
+                        <!-- Botón: Guardar Gestión -->
                         <div class="field">
-                            <button class="button is-info is-fullwidth" onclick="guardarGestion()">
-                                <span class="icon"><i class="fas fa-save"></i></span>
-                                <span>Guardar Gestión</span>
-                            </button>
+                            <div class="control">
+                                <button class="button is-info is-fullwidth" onclick="guardarGestion()">
+                                    <span class="icon"><i class="fas fa-save"></i></span>
+                                    <span>Guardar Gestión</span>
+                                </button>
+                            </div>
                         </div>
+                        
+                        <!-- Botón: Confirmar Devolución y Finalizar -->
+                        <div class="field">
+                            <div class="control">
+                                <button class="button is-success is-fullwidth" onclick="finalizarReserva()">
+                                    <span class="icon"><i class="fas fa-check-double"></i></span>
+                                    <span>Confirmar Devolución</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        
+                        {% else %}
+                        <!-- Mostramos la info en modo solo lectura si no está Aprobada -->
+                        <div class="field">
+                            <label class="label">Observaciones</label>
+                            <p class="is-family-monospace">{{ reserva.observaciones|default_if_none:"Sin observaciones." }}</p>
+                        </div>
+                        <div class="field">
+                            <label class="label">Fecha Entrega</label>
+                            <p>{{ reserva.fecha_entrega|date:"d/m/Y H:i"|default_if_none:"N/A" }}</p>
+                        </div>
+                        <div class="field">
+                            <label class="label">Fecha Devolución</label>
+                            <p>{{ reserva.fecha_devolucion|date:"d/m/Y H:i"|default_if_none:"N/A" }}</p>
+                        </div>
+                        
+                        <div class="notification is-light mt-4">
+                            Esta reserva está <strong>{{ reserva.estado_reserva }}</strong> y ya no se puede modificar.
+                        </div>
+                        {% endif %}
+                        <!-- Fin del bloque 'Aprobada' -->
+
                     </div>
                 </div>
             </div>
@@ -363,34 +475,52 @@
     const CSRF_TOKEN = getCookie('csrftoken');
 
     // ===================================
-    // 1. GESTIÓN DE EQUIPOS
+    // 1. GESTIÓN DE EQUIPOS (POR RACK)
     // ===================================
-    function asignarEquipo() {
-        const select = document.getElementById('select-equipo-disponible');
-        const equipoId = select.value;
-        const errorDiv = document.getElementById('error-asignar-equipo');
+    function asignarRack() {
+        const select = document.getElementById('select-rack-disponible');
+        const rackId = select.value;
+        const errorDiv = document.getElementById('error-asignar-rack');
         
-        if (!equipoId) {
-            showError(errorDiv, 'Debe seleccionar un equipo de la lista.');
+        if (!rackId) {
+            showError(errorDiv, 'Debe seleccionar un Rack viable de la lista.');
             return;
         }
 
-        // ¡CORREGIDO! Usar la variable de Django 'reserva.id_reserva'
-        fetch(`{% url 'api_asignar_equipo' reserva.id_reserva %}`, {
+        fetch(`{% url 'api_asignar_rack' reserva.id_reserva %}`, {
             method: 'POST',
             headers: {'X-CSRFToken': CSRF_TOKEN, 'Content-Type': 'application/json'},
-            body: JSON.stringify({ equipo_id: equipoId })
+            body: JSON.stringify({ rack_id: rackId })
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Éxito: recargamos la página para ver los cambios
                 location.reload(); 
             } else {
                 showError(errorDiv, data.error);
             }
         })
         .catch(err => showError(errorDiv, 'Error de red. Intente de nuevo.'));
+    }
+
+    function desasignarTodosLosEquipos() {
+        if (!confirm('¿Está seguro de QUITAR TODOS los equipos asignados a esta reserva? Esta acción los devolverá al estado "Disponible".')) {
+            return;
+        }
+
+        fetch(`{% url 'api_desasignar_todos_equipos' reserva.id_reserva %}`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': CSRF_TOKEN}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload(); // Recargar para ver cambios
+            } else {
+                alert('Error al quitar equipos: ' + data.error);
+            }
+        })
+        .catch(err => alert('Error de red.'));
     }
 
     function desasignarEquipo(asignacionId) {
@@ -426,7 +556,6 @@
             return;
         }
 
-        // ¡CORREGIDO! Usar la variable de Django 'reserva.id_reserva'
         fetch(`{% url 'api_asignar_supervisor' reserva.id_reserva %}`, {
             method: 'POST',
             headers: {'X-CSRFToken': CSRF_TOKEN, 'Content-Type': 'application/json'},
@@ -466,6 +595,20 @@
     // ===================================
     // 3. GESTIÓN DE EVIDENCIAS
     // ===================================
+    
+    // JS para el nombre del archivo en el input de Bulma
+    document.addEventListener('DOMContentLoaded', () => {
+        const fileInput = document.querySelector('.file-input');
+        if (fileInput) {
+            fileInput.onchange = () => {
+                if (fileInput.files.length > 0) {
+                    const fileName = document.querySelector('.file-name');
+                    fileName.textContent = fileInput.files[0].name;
+                }
+            }
+        }
+    });
+
     function eliminarEvidencia(evidenciaId) {
         if (!confirm('¿Está seguro de eliminar esta evidencia fotográfica? Esta acción no se puede deshacer.')) {
             return;
@@ -478,13 +621,11 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Eliminar el card de la galería
                 const card = document.getElementById(`evidencia-${evidenciaId}`);
                 if (card) card.remove();
                 
-                // Comprobar si quedan más
                 const gallery = document.getElementById('evidencia-gallery');
-                if (gallery.childElementCount === 0 || (gallery.childElementCount === 1 && gallery.children[0].id === 'no-evidencias')) {
+                if (!gallery.querySelector('.evidencia-card')) {
                     gallery.innerHTML = '<p class="has-text-grey" id="no-evidencias">No se han subido evidencias.</p>';
                 }
             } else {
@@ -505,11 +646,9 @@
             fecha_devolucion: document.getElementById('fecha-devolucion').value || null
         };
         
-        // Convertir a null si la fecha está vacía
         if (data.fecha_entrega === "") data.fecha_entrega = null;
         if (data.fecha_devolucion === "") data.fecha_devolucion = null;
 
-        // ¡CORREGIDO! Usar la variable de Django 'reserva.id_reserva'
         fetch(`{% url 'api_actualizar_gestion' reserva.id_reserva %}`, {
             method: 'POST',
             headers: {'X-CSRFToken': CSRF_TOKEN, 'Content-Type': 'application/json'},
@@ -518,7 +657,6 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Éxito: recargamos para que Django muestre el mensaje de éxito
                 location.reload();
             } else {
                 showError(errorDiv, data.error);
@@ -528,12 +666,45 @@
     }
 
     // ===================================
+    // ¡NUEVA FUNCIÓN PARA FINALIZAR!
+    // ===================================
+    function finalizarReserva() {
+        const obs = document.getElementById('observaciones').value;
+        const dev = document.getElementById('fecha-devolucion').value;
+
+        if (!obs || !dev) {
+            if(!confirm('Faltan las Observaciones o la Fecha de Devolución. ¿Desea finalizar la reserva de todos modos? (Se marcarán los equipos como "Disponibles")')) {
+                return;
+            }
+        } else {
+            if (!confirm('¿Está seguro de finalizar esta reserva? Los equipos asignados volverán a estar "Disponibles" y la reserva ya no se podrá modificar.')) {
+                return;
+            }
+        }
+        
+        fetch(`{% url 'api_finalizar_reserva' reserva.id_reserva %}`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': CSRF_TOKEN}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Redirigir a la lista de gestión, donde verá el mensaje de éxito
+                window.location.href = data.redirect_url;
+            } else {
+                alert('Error al finalizar: ' + data.error);
+            }
+        })
+        .catch(err => alert('Error de red.'));
+    }
+
+
+    // ===================================
     // UTILIDADES
     // ===================================
     function showError(errorDiv, message) {
         errorDiv.textContent = message;
         errorDiv.style.display = 'block';
-        // Ocultar después de 5 segundos
         setTimeout(() => {
             errorDiv.style.display = 'none';
         }, 5000);
