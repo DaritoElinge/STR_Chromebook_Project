@@ -6,7 +6,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
-from django.db import models # Para models.Q
+from django.db import models
+from django.utils import timezone
+from datetime import datetime, timedelta
 import json
 
 # Importar Modelos
@@ -56,7 +58,7 @@ def crear_reserva(request):
                 f'Estado: <strong>Pendiente de aprobación</strong>. '
                 f'Recibirá notificación cuando sea procesada.'
             )
-            return redirect('dashboard_docente')  # Redirige al dashboard, no a login
+            return redirect('dashboard_docente')
         else:
             messages.error(request, 'Por favor corrija los errores en el formulario.')
     else:
@@ -68,6 +70,115 @@ def crear_reserva(request):
     }
     
     return render(request, 'docente/crear_reserva.html', context)
+
+
+def mis_reservas(request):
+    """Vista para ver todas las reservas del docente"""
+    
+    if not request.session.get('usuario_id'):
+        messages.error(request, 'Debe iniciar sesión.')
+        return redirect('login')
+    
+    if request.session.get('usuario_tipo') != 'docente':
+        messages.error(request, 'Acceso denegado.')
+        return redirect('dashboard')
+    
+    usuario_id = request.session.get('usuario_id')
+    usuario = Usuario.objects.get(id_usuario=usuario_id)
+    
+    # Obtener todas las reservas del docente ordenadas por fecha
+    reservas = Reserva.objects.filter(
+        id_usuario=usuario
+    ).select_related(
+        'id_carrera', 'id_asignatura', 'id_aula', 'id_aula__id_bloque'
+    ).order_by('-fecha_uso', '-hora_inicio')
+    
+    # Calcular si cada reserva puede cancelarse (24 horas de antelación)
+    ahora = timezone.now()
+    for reserva in reservas:
+        # Combinar fecha y hora de uso
+        fecha_hora_uso = datetime.combine(reserva.fecha_uso, reserva.hora_inicio)
+        # Convertir a timezone-aware
+        if timezone.is_naive(fecha_hora_uso):
+            fecha_hora_uso = timezone.make_aware(fecha_hora_uso)
+        
+        # Calcular diferencia en horas
+        diferencia = (fecha_hora_uso - ahora).total_seconds() / 3600
+        
+        # Puede cancelar si:
+        # 1. Estado es Pendiente, O
+        # 2. Estado es Aprobada Y faltan más de 24 horas
+        reserva.puede_cancelar = (
+            reserva.estado_reserva == 'Pendiente' or 
+            (reserva.estado_reserva == 'Aprobada' and diferencia > 24)
+        )
+    
+    context = {
+        'usuario': usuario,
+        'reservas': reservas
+    }
+    
+    return render(request, 'docente/mis_reservas.html', context)
+
+
+def cancelar_reserva(request, reserva_id):
+    """Vista para cancelar una reserva (AJAX)"""
+    
+    if not request.session.get('usuario_id'):
+        return JsonResponse({'success': False, 'error': 'Debe iniciar sesión'})
+    
+    if request.session.get('usuario_tipo') != 'docente':
+        return JsonResponse({'success': False, 'error': 'Acceso denegado'})
+    
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            motivo = data.get('motivo', '').strip()
+            
+            if not motivo:
+                return JsonResponse({'success': False, 'error': 'Debe proporcionar un motivo de cancelación'})
+            
+            usuario_id = request.session.get('usuario_id')
+            reserva = get_object_or_404(Reserva, id_reserva=reserva_id, id_usuario_id=usuario_id)
+            
+            # Validar que pueda cancelarse
+            ahora = timezone.now()
+            fecha_hora_uso = datetime.combine(reserva.fecha_uso, reserva.hora_inicio)
+            if timezone.is_naive(fecha_hora_uso):
+                fecha_hora_uso = timezone.make_aware(fecha_hora_uso)
+            
+            diferencia_horas = (fecha_hora_uso - ahora).total_seconds() / 3600
+            
+            # Validar condiciones de cancelación
+            if reserva.estado_reserva == 'Pendiente':
+                # Puede cancelar en cualquier momento si está pendiente
+                pass
+            elif reserva.estado_reserva == 'Aprobada':
+                # Solo puede cancelar si faltan más de 24 horas
+                if diferencia_horas <= 24:
+                    return JsonResponse({
+                        'success': False, 
+                        'error': 'No puede cancelar una reserva aprobada con menos de 24 horas de antelación'
+                    })
+            else:
+                return JsonResponse({
+                    'success': False, 
+                    'error': f'No puede cancelar una reserva en estado {reserva.estado_reserva}'
+                })
+            
+            # Cancelar reserva
+            reserva.estado_reserva = 'Rechazada'
+            reserva.motivo_rechazo = f'[CANCELADA POR DOCENTE] {motivo}'
+            reserva.save()
+            
+            messages.success(request, f'✅ Reserva #{reserva_id} cancelada exitosamente.')
+            return JsonResponse({'success': True})
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
 
 # ======================================================
 # APIs (AJAX) - CREACIÓN DE RESERVA (DOCENTE)
