@@ -38,6 +38,18 @@
         </div>
     </nav>
 
+    <!-- Mensajes -->
+    {% if messages %}
+    <div class="container" style="margin-top: 5.5rem; margin-bottom: -1.5rem;">
+        {% for message in messages %}
+        <div class="notification is-{{ message.tags }}">
+            <button class="delete" onclick="this.parentElement.remove()"></button>
+            {{ message|safe }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <!-- Contenido -->
     <section class="section">
         <div class="container">
@@ -85,7 +97,7 @@
                             <p class="subtitle is-6 has-text-grey">
                                 Consulte el estado de sus solicitudes
                             </p>
-                            <a href="#" class="button is-fullwidth mt-4 is-link">
+                            <a href="{% url 'mis_reservas' %}" class="button is-fullwidth mt-4 is-link">
                                 <span class="icon"><i class="fas fa-eye"></i></span>
                                 <span>Ver Reservas</span>
                             </a>
@@ -104,7 +116,7 @@
                             <p class="subtitle is-6 has-text-grey">
                                 Revise el historial de préstamos anteriores
                             </p>
-                            <a href="#" class="button is-fullwidth mt-4 is-light">
+                            <a href="{% url 'mis_reservas' %}" class="button is-fullwidth mt-4 is-light">
                                 <span class="icon"><i class="fas fa-clock"></i></span>
                                 <span>Ver Historial</span>
                             </a>
@@ -192,5 +204,77 @@
             {% endif %}
         </div>
     </section>
+
+    <!-- Modal de Notificación de Reservas Aprobadas -->
+    {% if reservas_aprobadas_pendientes %}
+    <div class="modal is-active" id="modalNotificacion">
+        <div class="modal-background" onclick="cerrarModalNotificacion()"></div>
+        <div class="modal-card">
+            <header class="modal-card-head has-background-success">
+                <p class="modal-card-title has-text-white">
+                    <i class="fas fa-check-circle"></i> ¡Reservas Aprobadas!
+                </p>
+                <button class="delete" aria-label="close" onclick="cerrarModalNotificacion()"></button>
+            </header>
+            <section class="modal-card-body">
+                <div class="content">
+                    <p class="has-text-weight-semibold">
+                        <i class="fas fa-info-circle has-text-success"></i> 
+                        Tiene <strong class="has-text-success">{{ reservas_aprobadas_pendientes|length }} reserva(s) aprobada(s)</strong> pendiente(s) de uso:
+                    </p>
+                    <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+                        <table class="table is-fullwidth is-striped">
+                            <thead>
+                                <tr>
+                                    <th>Reserva</th>
+                                    <th>Fecha</th>
+                                    <th>Horario</th>
+                                    <th>Asignatura</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for reserva in reservas_aprobadas_pendientes %}
+                                <tr>
+                                    <td><strong>#{{ reserva.id_reserva }}</strong></td>
+                                    <td>{{ reserva.fecha_uso|date:"d/m/Y" }}</td>
+                                    <td>{{ reserva.hora_inicio|time:"H:i" }} - {{ reserva.hora_fin|time:"H:i" }}</td>
+                                    <td>{{ reserva.id_asignatura.nom_asignatura }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="notification is-info is-light mt-4">
+                        <i class="fas fa-lightbulb"></i> 
+                        <strong>Recuerde:</strong> Puede gestionar o cancelar sus reservas desde la sección "Mis Reservas".
+                    </div>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <a href="{% url 'mis_reservas' %}" class="button is-success">
+                    <span class="icon"><i class="fas fa-eye"></i></span>
+                    <span>Revisar Reservas</span>
+                </a>
+                <button class="button" onclick="cerrarModalNotificacion()">Cerrar</button>
+            </footer>
+        </div>
+    </div>
+    {% endif %}
+
+    <script>
+        function cerrarModalNotificacion() {
+            const modal = document.getElementById('modalNotificacion');
+            if (modal) {
+                modal.classList.remove('is-active');
+            }
+        }
+
+        // Cerrar modal con tecla ESC
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                cerrarModalNotificacion();
+            }
+        });
+    </script>
 </body>
 </html>

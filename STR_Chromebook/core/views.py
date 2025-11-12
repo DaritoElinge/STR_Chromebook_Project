@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.utils import timezone
 from core.models import Usuario
 
 def login_view(request):
@@ -111,12 +112,18 @@ def dashboard_docente(request):
     reservas_rechazadas = Reserva.objects.filter(id_usuario=usuario, estado_reserva='Rechazada').count()
     
     # Obtener próximas reservas (aprobadas, ordenadas por fecha)
-    from datetime import date
     proximas_reservas = Reserva.objects.filter(
         id_usuario=usuario,
         estado_reserva='Aprobada',
-        fecha_uso__gte=date.today()
-    ).order_by('fecha_uso', 'hora_inicio')[:5]
+        fecha_uso__gte=timezone.now().date()
+    ).select_related('id_asignatura', 'id_aula').order_by('fecha_uso', 'hora_inicio')[:5]
+    
+    # 🆕 NOTIFICACIONES: Reservas aprobadas pendientes de uso
+    reservas_aprobadas_pendientes = Reserva.objects.filter(
+        id_usuario=usuario,
+        estado_reserva='Aprobada',
+        fecha_uso__gte=timezone.now().date()
+    ).select_related('id_asignatura').order_by('fecha_uso', 'hora_inicio')[:5]
     
     context = {
         'usuario': usuario,
@@ -125,6 +132,7 @@ def dashboard_docente(request):
         'reservas_aprobadas': reservas_aprobadas,
         'reservas_rechazadas': reservas_rechazadas,
         'proximas_reservas': proximas_reservas,
+        'reservas_aprobadas_pendientes': reservas_aprobadas_pendientes,  # 🆕 AÑADIDO
     }
     
     return render(request, 'docente/dashboard.html', context)
