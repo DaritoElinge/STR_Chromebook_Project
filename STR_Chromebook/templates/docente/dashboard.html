@@ -42,10 +42,7 @@
     {% if messages %}
     <div class="container" style="margin-top: 5.5rem; margin-bottom: -1.5rem;">
         {% for message in messages %}
-        <div class="notification is-{{ message.tags }}">
-            <button class="delete" onclick="this.parentElement.remove()"></button>
-            {{ message|safe }}
-        </div>
+        
         {% endfor %}
     </div>
     {% endif %}
@@ -67,7 +64,7 @@
             <!-- Cards de Acciones -->
             <div class="columns is-multiline">
                 <!-- Card: Nueva Reserva -->
-                <div class="column is-one-third">
+                <div class="column is-one-half">
                     <div class="card">
                         <div class="card-content has-text-centered">
                             <div class="icon is-large" style="color: var(--color-primero);">
@@ -87,7 +84,7 @@
                 </div>
 
                 <!-- Card: Mis Reservas -->
-                <div class="column is-one-third">
+                <div class="column is-one-half">
                     <div class="card">
                         <div class="card-content has-text-centered">
                             <div class="icon is-large" style="color: var(--color-segundo);">
@@ -100,25 +97,6 @@
                             <a href="{% url 'mis_reservas' %}" class="button is-fullwidth mt-4 is-link">
                                 <span class="icon"><i class="fas fa-eye"></i></span>
                                 <span>Ver Reservas</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Card: Historial -->
-                <div class="column is-one-third">
-                    <div class="card">
-                        <div class="card-content has-text-centered">
-                            <div class="icon is-large has-text-grey-light">
-                                <i class="fas fa-history fa-3x"></i>
-                            </div>
-                            <h2 class="title is-4 mt-4 has-text-dark">Historial</h2>
-                            <p class="subtitle is-6 has-text-grey">
-                                Revise el historial de préstamos anteriores
-                            </p>
-                            <a href="{% url 'mis_reservas' %}" class="button is-fullwidth mt-4 is-light">
-                                <span class="icon"><i class="fas fa-clock"></i></span>
-                                <span>Ver Historial</span>
                             </a>
                         </div>
                     </div>
