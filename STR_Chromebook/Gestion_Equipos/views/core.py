@@ -231,9 +231,33 @@ def filtrar_asignaturas_por_carrera(request):
         if not carrera_id:
             return JsonResponse({'asignaturas': []})
         
-        asignaturas = Asignatura.objects.filter(id_carrera_id=carrera_id).values('id_asignatura', 'nom_asignatura')
-        
-        return JsonResponse({'asignaturas': list(asignaturas)})
+        try:
+            # Convertir a entero y validar
+            carrera_id = int(carrera_id)
+            
+            # Filtrar asignaturas por carrera
+            asignaturas = Asignatura.objects.filter(
+                id_carrera_id=carrera_id
+            ).values('id_asignatura', 'nom_asignatura').order_by('nom_asignatura')
+            
+            # Convertir a lista
+            asignaturas_list = list(asignaturas)
+            
+            # Debug: imprimir en consola
+            print(f"DEBUG - Carrera ID: {carrera_id}")
+            print(f"DEBUG - Asignaturas encontradas: {len(asignaturas_list)}")
+            print(f"DEBUG - Asignaturas: {asignaturas_list}")
+            
+            return JsonResponse({
+                'asignaturas': asignaturas_list,
+                'count': len(asignaturas_list)
+            })
+            
+        except ValueError:
+            return JsonResponse({'error': 'ID de carrera inválido', 'asignaturas': []})
+        except Exception as e:
+            print(f"ERROR en filtrar_asignaturas_por_carrera: {str(e)}")
+            return JsonResponse({'error': str(e), 'asignaturas': []})
     
     return JsonResponse({'asignaturas': []})
 
