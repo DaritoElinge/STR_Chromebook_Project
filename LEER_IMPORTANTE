@@ -1,0 +1,61 @@
+----------------------------------------------------------------------------------------------------------------------
+Configuración Inicial del Aplicativo 
+Para iniciar el proyecto y acceder al dashboard tanto como docente o administrador, siga los siguientes pasos:
+----------------------------------------------------------------------------------------------------------------------
+1. Crear el Superusuario
+Primero, ejecute el siguiente comando en la terminal:
+
+python manage.py createsuperuser
+
+Este comando le solicitará ingresar las credenciales necesarias. Complete la información requerida.
+
+2. Acceder al Panel de Administración
+Una vez creado el superusuario, acceda al panel de administración ingresando a:
+
+http://127.0.0.1:8000/admin
+
+Ingrese las credenciales del superusuario que creó en el paso anterior.
+
+3. Crear Usuarios del Sistema
+Para crear usuarios (docentes o administradores), siga estos pasos:
+
+a) Crear el Tipo de Usuario
+
+En el panel de administración, busque la sección Tipo_Usuario
+Cree el Tipo de Usuario:
+
+Docente (para profesores)
+Administrador (para administradores del sistema)
+
+Si se desea pasante/estudiante es posible hacerlo
+
+
+b) Crear el Usuario
+
+Vaya a la sección Usuario
+Haga clic en +Add usuario
+Complete los datos siguiendo el formato UNEMI para el nombre de usuario
+
+Formato del nombre de usuario:
+El formato sigue la convención de la UNEMI:
+
+Primera inicial del nombre
+Apellido paterno completo
+Primera inicial del apellido materno
+Todo en minúsculas y sin espacios
+
+Ejemplo:
+
+Nombre: Paula
+Apellido Paterno: Cuellar
+Apellido Materno: Pinta
+Usuario: pcuellarp
+
+4. Contraseñas de Prueba
+Utilice las siguientes contraseñas para propósitos de prueba:
+
+Para Docentes: docente123
+Para Administradores: admin123
+
+
+Nota: Estas contraseñas son únicamente para ambiente de pruebas. En producción, asegúrese de utilizar contraseñas seguras y únicas para cada usuario.
